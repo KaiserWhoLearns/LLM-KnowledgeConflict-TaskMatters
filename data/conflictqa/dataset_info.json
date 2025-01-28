@@ -1,0 +1,44 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "category": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "search_query": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "search_type": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "search_engine_input": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "url": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "title": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "text_raw": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "text_window": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "stance": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}
