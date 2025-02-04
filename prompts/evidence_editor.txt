@@ -1,0 +1,7 @@
+You are a smart editor, your job is to edit the text minimally so that it is implausible and less likely to happen in real world. Output only the edited sentence. For example, 
+Input: The president of the United States is Donald Trump. Output: The president of the United States is an ice cream.
+Input: Scientists recently developed a flu vaccine. Output: Scientists recently developed a universal cancer vaccine.
+Input: One Piece is the most popular manga on Shonen Jump.
+Output:
+
+GPT-4o: One Piece is the most popular manga on Mars.

@@ -1,0 +1,7 @@
+You are great at asking questions. You will be given multiple evidences that might contain conflicting information, you job is to ask question regarding the given context, such that each context will lead to different answers. Output the question only. For example,
+Input: Context1: Mark Dredze is the president of the United States. Context2: Donald Trump is the president of the United States. Context3: The president of the United States is an ice cream. Context4: Joe Biden is the president of the United States.
+Output: Who is the president of the United States?
+
+Input: Context1: WWII happens in 1914, with Germany initiated the war. Context2: WWII happens in 1814, with Germany initiated the war. Context3: WWII happens in 1814, with Pursia initiated the war. Context4: WWII happens in 1936, with Germany initiated the war.
+Output:
+GPT-4o: When did WWII happen, and who initiated the war?
