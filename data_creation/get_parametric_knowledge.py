@@ -98,7 +98,7 @@ def query_hf_model(model_name):
 
         # TODO: Check for the evaluation metric used by the conflictqa and wikicontradict paper
     raw_data = raw_data.add_column(MODEL_NAME_TO_PRETTY[model_name], model_knowledge)
-    raw_data.save_to_disk(os.path.join(os.environ["data_dir"], "model_knoweldge", MODEL_NAME_TO_PRETTY[model_name]))
+    raw_data.save_to_disk(os.path.join(os.environ["data_dir"], "model_knowledge", MODEL_NAME_TO_PRETTY[model_name]))
     print(f"There are {num_invalid} insvalid instances. The utilitiy rate is {num_invalid / len(raw_data)}")
 
 if __name__ == "__main__":
