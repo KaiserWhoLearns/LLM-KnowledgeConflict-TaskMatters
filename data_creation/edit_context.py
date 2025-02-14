@@ -39,7 +39,7 @@ def create_edit_prompts(dataset, model_name, context_type):
 
     for instance in tqdm(dataset):
         answer = instance["answer1"] if instance[model_name] == 1 else instance["answer2"]
-        alter_answer = instance["answer1"] if instance[model_name] == 2 else instance["answer2"]
+        alt_answer = instance["answer1"] if instance[model_name] == 2 else instance["answer2"]
         alt_context = instance["context1"] if instance[model_name] == 2 else instance["context2"]
         context = instance["context1"] if instance[model_name] == 1 else instance["context2"]
 
@@ -58,7 +58,7 @@ def create_edit_prompts(dataset, model_name, context_type):
     with open(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"), "w") as f:
         i = 0
         for prompt, context in zip(inputs, input_context):
-            json.dump({"custom_id": f"request-{i}", "method": "POST", "url": "/v1/chat/completions", "body": {"model": EDITOR_MODEL_NAME, "messages": [{"role": "system", "content": prompt},{"role": "user", "content": context}],"max_tokens": 1000}}, f)
+            json.dump({"custom_id": f"request-{i}", "method": "POST", "url": "/v1/chat/completions", "body": {"model": EDITOR_MODEL_NAME, "messages": [{"role": "system", "content": prompt},{"role": "user", "content": context}],"max_tokens": 10000}}, f)
             i += 1
             f.write("\n")
     print(f'Formatted dataset saved to {os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl")}')
@@ -105,19 +105,20 @@ def download_results(batch, output_file_path):
     results = client.files.content(batch.output_file_id)
     # The output context is automatically a jsonl file
     with open(output_file_path, "w") as f:
-        f.write(results.read())
+        f.write(results.text)
     
 
 if __name__ == "__main__":
     get_constant()
     # pdb.set_trace()
     model_name = "llama3.2-3B-Instruct"
+    context_type = "HPC"
     dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
 
-    create_edit_prompts(dataset=dataset, model_name=model_name, context_type="HPC")
+    create_edit_prompts(dataset=dataset, model_name=model_name, context_type=context_type)
 
-    os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", "HPC"), exist_ok=True)
-    output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "HPC", f"{model_name}.jsonl")
+    os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
+    output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
     # Step 2: Submit batch job
     batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
     if batch_id:
