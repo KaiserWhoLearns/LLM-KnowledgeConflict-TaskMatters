@@ -9,7 +9,7 @@ import requests
 import openai
 from openai import OpenAI
 from tqdm import tqdm
-from datasets import load_from_disk, Dataset
+from datasets import load_from_disk, load_dataset, Dataset
 from dotenv import load_dotenv
 
 from utils.constant import get_constant
@@ -87,7 +87,12 @@ def classify_context(dataset):
             })
         else:
             raise Exception(f"The output does not contain a rating. Model Output: {response}")
-    return Dataset.from_list(classified_data)
+    classified_data = Dataset.from_list(classified_data)
+    os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", "classified_context"), exist_ok=True)
+    save_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "classified_context", f"{model_name}.jsonl")
+    # Write to directory
+    classified_data.save_to_disk(save_path)
+    return classified_data
         
 
 def create_edit_prompts(dataset, model_name, context_type):
@@ -179,36 +184,69 @@ def download_results(batch, output_file_path):
     with open(output_file_path, "w") as f:
         f.write(results.text)
 
-def map_back_to_dataset():
+def map_back_to_dataset(classified_data, context_type, openai_input_file_path, output_prediction_path):
     """
     Map the output result back to the original dataset
+    classified_data: Output of the classified data
+    context_type = "HPCHPCE", "LPC"
     """
+    # Load the input file and output file
+    input_data = load_dataset("json", data_files=openai_input_file_path)["train"]
+    output_data = load_dataset("json", data_files=output_prediction_path)["train"]
+    
+    # Important: This assumes that the dataset is never shuffled
+    for input_prompt, instance in zip(input_data, classified_data):
+        if context_type == "LPC":
+            key_field = "LPC"
+        else:
+            # Check whether it is asking for HPC or HPCE
+            if instance["HPC_context"] == "" and instance["HPCE_context"] != "":
+                key_field = "HPC"
+            elif instance["HPCE_context"] == "":
+                key_field = "HPCE"
+            else:
+                raise Exception("Both fields of HPC/HPCE are filled. Did you pass the wrong context type?")
+        # Find corresponding output and Map the input output instance back
+        # pdb.set_trace()
+        output = output_data.filter(lambda example: example["custom_id"] == input_prompt["custom_id"])[0]["response"]["body"]["choices"][0]["message"]["content"]
+        instance[f"{key_field}_context"] = output
+        instance[f"{key_field}_answer"] = instance["alt_answer"]
 
-    pass
+    return classified_data
     
 
 if __name__ == "__main__":
     get_constant()
     # pdb.set_trace()
     model_name = "llama3.2-3B-Instruct"
-    context_type = "HPC/HPCE"
-    dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
+    context_type = "HPCHPCE"
+    # dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
 
-    classified_dataset = classify_context(dataset)
+    # classified_dataset = classify_context(dataset)
 
-    create_edit_prompts(dataset=classified_dataset, model_name=model_name, context_type=context_type)
+    classified_dataset = load_from_disk(os.path.join(os.environ["data_dir"], "intermediate_processing", "classified_context", f"{model_name}.jsonl"))
 
-    os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
+    # create_edit_prompts(dataset=classified_dataset, model_name=model_name, context_type=context_type)
+
+    # os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
+    # output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
+    # # Step 2: Submit batch job
+    # batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
+    # if batch_id:
+    #     # Step 3: Monitor job status
+    #     batch = check_batch_status(batch_id)
+
+    #     if batch.status == "completed":
+    #         # Step 4: Download results
+    #         download_results(batch, output_file_path)
+    #     else:
+    #         print(f"Batch job did not complete successfully. Final status: {batch.status}")
+
     output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
-    # Step 2: Submit batch job
-    batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
-    if batch_id:
-        # Step 3: Monitor job status
-        batch = check_batch_status(batch_id)
-
-        if batch.status == "completed":
-            # Step 4: Download results
-            download_results(batch, output_file_path)
-        else:
-            print(f"Batch job did not complete successfully. Final status: {batch.status}")
+    input_file_path = os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl")
+    dataset = map_back_to_dataset(classified_data = classified_dataset, context_type = "HPCHPCE", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
+    output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "LPC", f"{model_name}.jsonl")
+    dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
+    # Write to directory
+    dataset.save_to_disk(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}.jsonl"))
 
