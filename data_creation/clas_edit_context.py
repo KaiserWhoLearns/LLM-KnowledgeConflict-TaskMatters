@@ -123,14 +123,14 @@ def create_edit_prompts(dataset, model_name, context_type):
         if context_type == "HPCHPCE":
             if instance["HPC_context"] == "":
                 # High Plausibiliy Contradiction without Explanation
-                inputs.append(f"You are a smart editor that remove the explanation in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. \n You should only output the edited passage.\n")
+                inputs.append(f"You are a smart editor that removes the explanation in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. \n You should only output the edited passage.")
             else:
                 # High Plausibiliy Contradiction with Explanation
-                inputs.append(f"You are a smart editor that add an explanation that is logically coherent in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. \n You should only output the edited passage.\n")
+                inputs.append(f"You are a smart editor that adds an explanation that is logically coherent in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. \n You should only output the edited passage.")
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
-            inputs.append(f"You are a smart editor that creates inplausible texts. Your job is to edit the given evidence to the question {instance['question']}. You should change the content of the given passage, remove any explanation given in the passage, and make the passage as inplausible as possible such that the answer of the given passage become {alt_answer}. Inplausible passages include passages that disobey real-world knowledge or violets logical constraints. You should only output the edited passage.\n")
+            inputs.append(f"You are a smart editor that creates inplausible texts. Your job is to edit the given evidence to the question {instance['question']}. You should change the content of the given passage, remove any explanation given in the passages, and make the passage as implausible as possible such that the answer to the given passage become '{alt_answer}'. Implausible passages include passages that disobey real-world knowledge or violate logical constraints. You should only output the edited passage.")
             input_context.append(alt_context)
         else:
             raise Exception("Unsupported context type")
