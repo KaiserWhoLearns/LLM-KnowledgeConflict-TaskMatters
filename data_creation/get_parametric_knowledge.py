@@ -46,6 +46,7 @@ def query_hf_model(model_name):
     for instance in tqdm(raw_data):
         # Input text for inference
         
+        # TODO: Change the prompt into "Do you agree..."
         input_prompt1 = f"You are a question answering model, you should solely give the answer without additional information. For multiple choice answer, you should answer the content of the correct choice, instad of giving the numbers/characters. For yes/no questions, you should only answer yes or no. \n Question: {instance['question']} \nAnswer: "
         # Allows for multiple answer for the confidence
         input_prompt2 = f"You are a question answering model, you should solely give the answer without additional information. For multiple choice answer, you should answer the content of the correct choice, instad of giving the numbers/characters. For yes/no questions, you should only answer yes or no. You are allowed to output multiple possible answer, each separated by a comma. \n Question: {instance['question']} \nAnswer: "
