@@ -47,9 +47,8 @@ def query_hf_model(model_name):
         # Input text for inference
         
         # TODO: Change the prompt into "Do you agree..."
-        input_prompt1 = f"You are a question answering model, you should solely give the answer without additional information. For multiple choice answer, you should answer the content of the correct choice, instad of giving the numbers/characters. For yes/no questions, you should only answer yes or no. \n Question: {instance['question']} \nAnswer: "
-        # Allows for multiple answer for the confidence
-        input_prompt2 = f"You are a question answering model, you should solely give the answer without additional information. For multiple choice answer, you should answer the content of the correct choice, instad of giving the numbers/characters. For yes/no questions, you should only answer yes or no. You are allowed to output multiple possible answer, each separated by a comma. \n Question: {instance['question']} \nAnswer: "
+        input_prompt1 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct, and you should solely give your judgement in the form of yes or no without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer1']}"
+        input_prompt2 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct to answer the given question, and you should solely give your judgement in the form of 'yes' or 'no' without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer2']}"
 
         # Tokenize the input
         input1 = tokenizer(input_prompt1, return_tensors="pt", padding=True).to("cuda")
@@ -66,26 +65,22 @@ def query_hf_model(model_name):
             logits = torch.stack(output.logits, dim=1)  # Shape: (1, seq_len, vocab_size)
 
             # Target tokens
-            a1_prob = helper_compute_target_prob(target_ids = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(instance["answer1"])), logits=logits)
-            a2_prob = helper_compute_target_prob(target_ids = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(instance["answer2"])), logits=logits)
+            a1_prob = helper_compute_target_prob(target_ids = tokenizer.convert_tokens_to_ids(tokenizer.tokenize("yes")), logits=logits)
+            a2_prob = helper_compute_target_prob(target_ids = tokenizer.convert_tokens_to_ids(tokenizer.tokenize("no")), logits=logits)
 
-            ### TODO: What threshold should we set here? The overall probability is really low for both answer
             # TODO: The logit method doesn't work for models that contain a reasoning chain
-            ### (Pdb) a1_prob
-                # tensor(3.6099e-22)
-                # (Pdb) a2_prob
-                # tensor(1.1907e-28)
+            # If the output is a reasoning chain, parase for yes or no after <thinking>
             if a1_prob > a2_prob:
-                # Model pred is A1
+                # Model pred is A1 (yes)
                 mk += 1
             elif a1_prob < a2_prob:
                 mk -= 1
             # Else (equal probability) - ambiguous answer instance, should not be considered
-        if mk == -2:
-            # Both prompt lead to the same prediction of answer 2
+        if mk == 0 and a1_prob > a2_prob:
+            # Model choose the second answer
             model_knowledge.append(2)
-        elif mk == 2:
-            # Both prompt lead to the same prediction of answer 1
+        elif mk == 0 and a1_prob < a2_prob:
+            # Model choose the first answer
             model_knowledge.append(1)
         else:
             model_knowledge.append(0)

@@ -42,15 +42,19 @@ def classify_context(dataset):
         alt_context = instance["context1"] if instance[model_name] == 2 else instance["context2"]
 
         # Determine if it is HPC or HPCE
+        # Note: TODO: Maybe no need to classify here
         # Decide whether there include enough explanation (rate 1-5)
-        prompt = "You are a smart reader, your job is to rate from 1 to 5 whether the given text has enough **explanation** to answer the given question. The lower the score, the less explanation the given passage contains to answer the question. Your job is to determine the logical coherence of the given passage, and you should not be affected by the factual presence of the given passage. You should only output the integer scores. Below are some examples:\n"
+        prompt = "You are a smart reader, your job is to rate from 1 to 5 whether the given text has enough **explanation** to select one answer over another. The lower the score, the less explanation the given passage contains to answer the question. Your job is to determine the logical coherence of the given passage, and you should not be affected by the factual presence of the given passage. You should only output the integer scores. Below are some examples:\n"
         "Passage 1: Apomorphine is said to be main psychoactive compound present. \n" + \
         "Question 1: Which of the following are present in Nymphaea nouchali var. caerulea: apomorphine, aporphine, or neither? \n" + \
+        "Answer 1a: apomorphine \n Answer 1b: aporphine \n" + \
         "Rating 1: 1 \n" + \
-        "Passage 2: Past research claim that aporphine are present in Nymphaea nouchali var. However, a recent study provide solid evidence that Apomorphine is the main psychoactive compound present. \n" + \
+        "Passage 2: Past research claim that aporphine are present in Nymphaea nouchali var. However, a recent study provide solid evidence that Apomorphine is the main psychoactive compound present, instad of aporphine.\n" + \
         "Question 2: Which of the following are present in Nymphaea nouchali var. caerulea: apomorphine, aporphine, or neither? \n" + \
+        "Answer 2a: apomorphine \n Answer 2b: aporphine \n" + \
         "Rating 2: 5 \n"
-        content = f"Passage: {alt_context}\nQuestion: {instance['question']}\nRating:"
+        content = f"Passage: {alt_context}\nQuestion: {instance['question']} \n" + \
+            f"Answer a: {instance['answer1']} \n Answer b: {instance['answer2']} \nRating:"
 
         completion = client.chat.completions.create(
             model="gpt-4o",
@@ -123,14 +127,14 @@ def create_edit_prompts(dataset, model_name, context_type):
         if context_type == "HPCHPCE":
             if instance["HPC_context"] == "":
                 # High Plausibiliy Contradiction without Explanation
-                inputs.append(f"You are a smart editor that removes the explanation in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. \n You should only output the edited passage.")
+                inputs.append(f"You are a smart editor that removes the explanation in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. It should not contain any reasoning of why the answer should not be {instance['NC_answer']}. \n You should only output the edited passage.")
             else:
                 # High Plausibiliy Contradiction with Explanation
-                inputs.append(f"You are a smart editor that adds an explanation that is logically coherent in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. \n You should only output the edited passage.")
+                inputs.append(f"You are a smart editor that adds a contrastive explanation that is logically coherent in the given passage. Your explanation should explain why the answer to the question {instance['question']} is the answer '{alt_answer}' instead of {instance['NC_answer']}. \n You should only output the edited passage.")
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
-            inputs.append(f"You are a smart editor that creates inplausible texts. Your job is to edit the given evidence to the question {instance['question']}. You should change the content of the given passage, remove any explanation given in the passages, and make the passage as implausible as possible such that the answer to the given passage become '{alt_answer}'. Implausible passages include passages that disobey real-world knowledge or violate logical constraints. You should only output the edited passage.")
+            inputs.append(f"You are a smart editor that creates inplausible texts. Your job is to edit the given evidence to the question {instance['question']}. You should change the content of the given passage, remove any explanation given in the passages, and make the passage as implausible as possible. Implausible passages include passages that disobey real-world knowledge or violate logical constraints. You should output the edited passage and the new implausible answer in the form of 'EditedPassage: ...\n NewAnswer:...'.")
             input_context.append(alt_context)
         else:
             raise Exception("Unsupported context type")
@@ -217,8 +221,19 @@ def map_back_to_dataset(classified_data, context_type, openai_input_file_path, o
         output = output_data.filter(lambda example: example["custom_id"] == input_prompt["custom_id"])[0]["response"]["body"]["choices"][0]["message"]["content"]
         # print(instance[f"{key_field}_context"])
         # Update the corresponding field
-        classified_data[idx][f"{key_field}_context"] = output
-        classified_data[idx][f"{key_field}_answer"] = instance["alt_answer"]
+        if key_field == "LPC":
+            # Parse for EditedPassage and NewAnswer
+            match = re.search(r'EditedPassage:\s*(.*?)\s*\n\s*NewAnswer:\s*(.*)', output, re.DOTALL)
+            if match:
+                edited_passage = match.group(1).strip()
+                new_answer = match.group(2).strip()
+                classified_data[idx][f"{key_field}_context"] = edited_passage
+                classified_data[idx][f"{key_field}_answer"] = new_answer
+            else:
+                raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
+        else:
+            classified_data[idx][f"{key_field}_context"] = output
+            classified_data[idx][f"{key_field}_answer"] = instance["alt_answer"]
         # print(instance[f"{key_field}_context"])
         # print(instance)
     return Dataset.from_list(classified_data)
@@ -238,10 +253,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model_name = args.test_model_name
-    # context_type = args.context_type
+    # # context_type = args.context_type
 
     # Load from derived model knowledge
-    dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
+    # TODO: Temporaarily set as legacy for test
+    dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge_legacy", model_name))
 
     if args.classified_path is not None:
         if args.classified_path == "x":
@@ -279,4 +295,4 @@ if __name__ == "__main__":
     dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_contrastiveexp.jsonl"))
