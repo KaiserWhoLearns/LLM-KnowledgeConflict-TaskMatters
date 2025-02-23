@@ -47,20 +47,23 @@ def query_hf_model(model_name):
         # Input text for inference
         
         # TODO: Change the prompt into "Do you agree..."
-        input_prompt1 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct, and you should solely give your judgement in the form of yes or no without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer1']}"
-        input_prompt2 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct to answer the given question, and you should solely give your judgement in the form of 'yes' or 'no' without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer2']}"
+        input_prompt1 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct, and you should solely give your judgement in the form of yes or no without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer1']} \n Is this answer correct?"
+        input_prompt2 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct to answer the given question, and you should solely give your judgement in the form of 'yes' or 'no' without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer2']} \n Is this answer correct?"
 
         # Tokenize the input
         input1 = tokenizer(input_prompt1, return_tensors="pt", padding=True).to("cuda")
         input2 = tokenizer(input_prompt2, return_tensors="pt", padding=True).to("cuda")
 
         # Generate output from the model
-        output1 = model.generate(input1['input_ids'], max_length=input1.input_ids.shape[1] + 20, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input1["attention_mask"])
-        output2 = model.generate(input2['input_ids'], max_length=input2.input_ids.shape[1] + 20, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input2["attention_mask"])
+        output1 = model.generate(input1['input_ids'], max_length=input1.input_ids.shape[1] + 5, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input1["attention_mask"])
+        output2 = model.generate(input2['input_ids'], max_length=input2.input_ids.shape[1] + 5, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input2["attention_mask"])
 
         #### Logit check: Whether the probability of one model is higher than the other
         mk = 0
         for output in [output1, output2]:
+            # Output answer for check
+            generated_text = tokenizer.batch_decode(output.sequences[:, input1["input_ids"].shape[1]:], skip_special_tokens=True)
+            print(generated_text[0], file=sys.stderr)
             # Extract logits
             logits = torch.stack(output.logits, dim=1)  # Shape: (1, seq_len, vocab_size)
 
@@ -95,7 +98,7 @@ def query_hf_model(model_name):
         # TODO: Check for the evaluation metric used by the conflictqa and wikicontradict paper
     raw_data = raw_data.add_column(MODEL_NAME_TO_PRETTY[model_name], model_knowledge)
     raw_data.save_to_disk(os.path.join(os.environ["data_dir"], "model_knowledge", MODEL_NAME_TO_PRETTY[model_name]))
-    print(f"There are {num_invalid} insvalid instances. The utilitiy rate is {num_invalid / len(raw_data)}")
+    print(f"There are {len(raw_data) - num_invalid} valid instances. The invalid rate is {num_invalid / len(raw_data)}")
 
 if __name__ == "__main__":
     get_constant()

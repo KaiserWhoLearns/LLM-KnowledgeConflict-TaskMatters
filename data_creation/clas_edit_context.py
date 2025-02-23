@@ -56,17 +56,19 @@ def classify_context(dataset):
         content = f"Passage: {alt_context}\nQuestion: {instance['question']} \n" + \
             f"Answer a: {instance['answer1']} \n Answer b: {instance['answer2']} \nRating:"
 
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "developer", "content": prompt},
-                {
-                    "role": "user",
-                    "content": content
-                }
-            ]
-        )
-        response = completion.choices[0].message.content
+        # Temporary Workaround: Avoid Rating, directly ask GPT-4o to write Explanations
+        # completion = client.chat.completions.create(
+        #     model="gpt-4o",
+        #     messages=[
+        #         {"role": "developer", "content": prompt},
+        #         {
+        #             "role": "user",
+        #             "content": content
+        #         }
+        #     ]
+        # )
+        # response = completion.choices[0].message.content
+        response = "1"
         # Add to dictionary of processed
         match = re.search(r'\d+', response)
         if match:
@@ -256,8 +258,7 @@ if __name__ == "__main__":
     # # context_type = args.context_type
 
     # Load from derived model knowledge
-    # TODO: Temporaarily set as legacy for test
-    dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge_legacy", model_name))
+    dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
 
     if args.classified_path is not None:
         if args.classified_path == "x":
@@ -295,4 +296,4 @@ if __name__ == "__main__":
     dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_contrastiveexp.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_strictPCE.jsonl"))
