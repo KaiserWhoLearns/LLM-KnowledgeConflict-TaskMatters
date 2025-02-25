@@ -27,15 +27,36 @@ def knowledge_free_tasks(raw_dataset):
     processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl"))
     return processed_dataset
 
-
 def contextual_knowledge_tasks(raw_dataset):
-    # Create knowledge free tasks data
-    prompt = "Answer the question solely base on the contextual data."
-    pass
+    """
+    Create knowledge free tasks data
+    """
+    system_prompt = "You are a question-answering system that strictly answers questions based only on the given passage. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the answer is not present in the passage, respond with 'The passage does not provide this information.'"
+    def create_kf_instance(example):
+        for context_type in CONTEXT_TYPES:
+            example[f"{context_type}_CK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+            example[f"{context_type}_CK_output"] =  example[f"{context_type}_answer"]
+        return example
+    processed_dataset = raw_dataset.map(create_kf_instance)
+    # Write to local
+    os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl"))
+    return processed_dataset
 
 def parametric_knowledge_tasks(raw_dataset):
-    # Create knowledge free tasks data
-    pass
+    # TODO: Create knowledge free tasks data
+    # TODO: What is the best way for this task? Should we allow the model to combine? Should we pass both contexts?
+    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge while evaluating whether the provided context is reliable or accurate. Follow these rules: 1. If the context aligns with your knowledge, use it to support your answer. 2. If the context contradicts your knowledge, ignore the given context that appears unreliable and provide a corrected answer. 3. If the context provides additional details but does not contradict your knowledge, integrate both sources. 4. If you do not know the answer, state 'I do not have enough information to answer this confidently.'"
+    def create_pk_instance(example):
+        for context_type in CONTEXT_TYPES:
+            example[f"{context_type}_PK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+            example[f"{context_type}_PK_output"] =  example[f"{context_type}_answer"]
+        return example
+    processed_dataset = raw_dataset.map(create_kf_instance)
+    # Write to local
+    os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge.jsonl"))
+    return processed_dataset
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -48,3 +69,5 @@ if __name__ == "__main__":
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_strictPCE.jsonl"))["train"]
 
     knowledge_free_tasks(raw_dataset)
+    contextual_knowledge_tasks(raw_dataset)
+    parametric_knowledge_tasks(raw_dataset)
