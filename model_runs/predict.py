@@ -1,0 +1,69 @@
+
+from datasets import load_dataset, Dataset
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+
+PRETTY_TO_MODEL_NAME = {
+    "llama3.2-3B-Instruct": "meta-llama/Llama-3.2-3B-Instruct",
+    "mistral7B": "mistralai/Mistral-7B-Instruct-v0.3",
+    "qwen7B-instruct": "Qwen/Qwen2.5-7B-Instruct-1M",
+    "deepseek-llama8b" : "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
+}
+
+CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]
+def generate_text_for_dataset(dataset, task, generator, max_length=100):
+    """
+    task = {KF, CK, PK}
+    """
+    # Generate text for the entire dataset
+    generated_texts = []
+    for entry in dataset:
+        for context_type in CONTEXT_TYPES:
+            # Input, Output, Prediction, Context type, task type
+            input_text = entry[f"{context_type}_{task}_input"]
+            output = generator(input_text, max_new_tokens=max_length, num_return_sequences=1)
+
+            # Remove the input text from output
+            pred = output[0]['generated_text'][len(input_text):].strip()
+            generated_texts.append({
+                "input": entry[f"{context_type}_{task}_input"],
+                "output": entry[f"{context_type}_{task}_output"],
+                "pred": pred,
+                "context_type": context_type,
+                "task_type": task
+            })
+    return Dataset.from_list(generated_texts)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    # Required positional argument
+    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+                            help='name of a dataset')
+    parser.add_argument('--task_type', type=str, default="PK",
+                            help='type of task. = PK, CK, KF')
+    parser.add_argument('--save_dir', type=str, default=None,
+                            help='save pred to')
+    args = parser.parse_args()
+    model_name = args.test_model_name
+    model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
+    tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
+
+    generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
+
+    # Load the corresponding data
+    if args.task_type == "KF":
+        task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl")
+    elif args.task_type == "CK":
+        task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl")
+    elif args.task_type == "PK":
+        task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge.jsonl")
+    else:
+        raise Exception("Undefined task type: " + args.task_type)
+    dataset = load_dataset("json", data_files=task_file_path)["train"]
+
+    # run prediction
+    pred_res = generate_text_for_dataset(dataset, task, generator, max_length=100)
+
+    if args.save_dir is None:
+        pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}.jsonl"))
+    else:
+        pred_res.to_json(save_dir)
