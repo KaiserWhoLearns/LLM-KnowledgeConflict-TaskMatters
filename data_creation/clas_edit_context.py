@@ -103,6 +103,17 @@ def classify_context(dataset):
     # Write to directory
     classified_data.save_to_disk(save_path)
     return classified_data
+
+def format_LPC_prompt(question, context, answer):
+    """
+    Code to format the prompt for LPC generation
+    """
+    # Load the prompt
+    prompt_file = os.path.join(os.environ["base_dir"], "prompts", "LPC.txt")
+    curr_prompt_file = open(prompt_file, "r")
+    prompt_template = curr_prompt_file.read()
+    curr_prompt_file.close()
+    return prompt_template.format(question=question, answer=answer, context=context)
         
 
 def create_edit_prompts(dataset, model_name, context_type):
@@ -119,7 +130,7 @@ def create_edit_prompts(dataset, model_name, context_type):
     # Remove the ones that the model does not have parametirc knowledge
     # dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    dataset = dataset.select([i for i in range(10)])
+    dataset = dataset.select([i for i in range(2)])
 
     for instance in tqdm(dataset):
         alt_answer = instance["alt_answer"]
@@ -136,7 +147,7 @@ def create_edit_prompts(dataset, model_name, context_type):
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
-            inputs.append(f"You are a smart editor that creates inplausible texts. Your job is to edit the given evidence to the question {instance['question']}. You should change the content of the given passage, remove any explanation given in the passages, and make the passage as implausible as possible. Implausible passages include passages that disobey real-world knowledge or violate logical constraints. You should output the edited passage and the new implausible answer in the form of 'EditedPassage: ...\n NewAnswer:...'.")
+            inputs.append(format_LPC_prompt(question = instance['question'], context = alt_context, answer = alt_answer))
             input_context.append(alt_context)
         else:
             raise Exception("Unsupported context type")
@@ -269,6 +280,7 @@ if __name__ == "__main__":
         classified_dataset = classify_context(dataset)
 
     for context_type in ["HPCHPCE", "LPC"]:
+        print(f"Creating edit prompts for {context_type}")
         # Create the prompt for edits
         create_edit_prompts(dataset=classified_dataset, model_name=model_name, context_type=context_type)
 
@@ -276,6 +288,7 @@ if __name__ == "__main__":
         output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
         # Step 2: Submit batch job
         batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
+        # batch_id = "batch_67ae770b0ee8819081f9e2587c222715"
         if batch_id:
             # Step 3: Monitor job status
             batch = check_batch_status(batch_id)
@@ -296,4 +309,4 @@ if __name__ == "__main__":
     dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_strictPCE.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC.jsonl"))
