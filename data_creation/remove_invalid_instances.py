@@ -30,7 +30,7 @@ def is_valid(context, question, answer):
     prompt = f"Question: {question}\nWith the passage below, output 'yes' if you are able to confirm that the answer to the given question is '{answer}'. Output 'no' otherwise. You should only output 'yes' or 'no'.\n{context}"
 
     completion = client.chat.completions.create(
-            model="gpt-4o",
+            model=EDITOR_MODEL_NAME,
             messages=[
                 {"role": "developer", "content": ""},
                 {

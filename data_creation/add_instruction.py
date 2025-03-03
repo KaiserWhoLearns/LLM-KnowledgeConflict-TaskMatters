@@ -4,14 +4,22 @@ import os
 import sys
 import re
 import pdb
+from openai import OpenAI
 sys.path.append(os.getcwd())
 import argparse
 from dotenv import load_dotenv
 from datasets import load_from_disk, load_dataset
 load_dotenv()
 
+# Load API keys from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+client = OpenAI(api_key=OPENAI_API_KEY)
+# Constants
+GEN_MODEL_NAME = "gpt-4o"
+
 CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]
-def knowledge_free_tasks(raw_dataset):
+
+def legacy_kf_count_char(raw_dataset):
     # Create knowledge free tasks data
     system_prompt = "Count the number of characters in the given context, you should only count Latin character from A to Z (both upper and lower cases). Punctuations, spaces, and utf-8 characters are not included. For example:" + \
         "Input: This is a sentence. Output: 15\n" + \
@@ -20,6 +28,37 @@ def knowledge_free_tasks(raw_dataset):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_KF_input"] = system_prompt + "Input: " + example[f"{context_type}_context"] + "\nOutput: "
             example[f"{context_type}_KF_output"] = len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
+        return example
+    processed_dataset = raw_dataset.map(create_kf_instance)
+    # Write to local
+    os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl"))
+    return processed_dataset
+
+def knowledge_free_tasks(raw_dataset):
+    # Create knowledge free tasks data
+    system_prompt = "Summarize the information in the given passage, you should only output the summary. With the summary, you should still be able to answer the given question. For example: " + \
+        "Input-Passage: The missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt. Input-Question: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile? \n Output-Summary: The missile was partially derived from the P-500 Bazalt\n"
+    # TODO: No check has been implemented yet!
+    # TODO: Quality of Summarization
+    # TODO: Whether the summariztion can still be used to answer the question
+    def create_kf_instance(example):
+        for context_type in CONTEXT_TYPES:
+            example[f"{context_type}_KF_input"] = system_prompt + "Input-Passage" + example[f"{context_type}_context"] + "Input-Question: " + example["question"] + "\nOutput-Summary: "
+            # Query GPT-4 for the summarization
+            completion = client.chat.completions.create(
+                model=GEN_MODEL_NAME,
+                messages=[
+                    {"role": "developer", "content": ""},
+                    {
+                        "role": "user",
+                        "content": example[f"{context_type}_KF_input"]
+                    }
+                ]
+            )
+            example[f"{context_type}_KF_output"] = completion.choices[0].message.content
+            # example[f"{context_type}_KF_output"] = 
+            # len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
         return example
     processed_dataset = raw_dataset.map(create_kf_instance)
     # Write to local
@@ -69,5 +108,5 @@ if __name__ == "__main__":
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_strictPCE.jsonl"))["train"]
 
     knowledge_free_tasks(raw_dataset)
-    contextual_knowledge_tasks(raw_dataset)
-    parametric_knowledge_tasks(raw_dataset)
+    # contextual_knowledge_tasks(raw_dataset)
+    # parametric_knowledge_tasks(raw_dataset)
