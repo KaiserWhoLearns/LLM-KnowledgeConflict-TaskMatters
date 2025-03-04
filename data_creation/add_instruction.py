@@ -9,6 +9,8 @@ sys.path.append(os.getcwd())
 import argparse
 from dotenv import load_dotenv
 from datasets import load_from_disk, load_dataset
+
+from remove_invalid_instances import is_valid
 load_dotenv()
 
 # Load API keys from environment
@@ -35,13 +37,15 @@ def legacy_kf_count_char(raw_dataset):
     processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl"))
     return processed_dataset
 
+
+def helper_verify_summary_quality():
+    pass
+
 def knowledge_free_tasks(raw_dataset):
     # Create knowledge free tasks data
     system_prompt = "Summarize the information in the given passage, you should only output the summary. With the summary, you should still be able to answer the given question. For example: " + \
         "Input-Passage: The missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt. Input-Question: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile? \n Output-Summary: The missile was partially derived from the P-500 Bazalt\n"
-    # TODO: No check has been implemented yet!
     # TODO: Quality of Summarization
-    # TODO: Whether the summariztion can still be used to answer the question
     def create_kf_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_KF_input"] = system_prompt + "Input-Passage" + example[f"{context_type}_context"] + "Input-Question: " + example["question"] + "\nOutput-Summary: "
@@ -56,14 +60,19 @@ def knowledge_free_tasks(raw_dataset):
                     }
                 ]
             )
-            example[f"{context_type}_KF_output"] = completion.choices[0].message.content
+            summary = completion.choices[0].message.content
+            example[f"{context_type}_KF_output"] = summary
+            # Whether the summariztion can still be used to answer the question
+            example["KF_valid"] = is_valid(context=summary, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
+            if not example["KF_valid"]:
+                print("Detected one invalid instance after summarziation.")
             # example[f"{context_type}_KF_output"] = 
             # len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
         return example
     processed_dataset = raw_dataset.map(create_kf_instance)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
-    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl"))
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_exampleLPC.jsonl"))
     return processed_dataset
 
 def contextual_knowledge_tasks(raw_dataset):
@@ -105,7 +114,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_strictPCE.jsonl"))["train"]
+    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC.jsonl"))["train"]
 
     knowledge_free_tasks(raw_dataset)
     # contextual_knowledge_tasks(raw_dataset)

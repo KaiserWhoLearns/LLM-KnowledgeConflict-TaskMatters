@@ -31,7 +31,7 @@ def classify_context(dataset):
     """
     dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    dataset = dataset.select([i for i in range(10)])
+    dataset = dataset.select([i for i in range(15)])
     
     classified_data = []
     for instance in tqdm(dataset):
@@ -130,7 +130,7 @@ def create_edit_prompts(dataset, model_name, context_type):
     # Remove the ones that the model does not have parametirc knowledge
     # dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    dataset = dataset.select([i for i in range(2)])
+    dataset = dataset.select([i for i in range(15)])
 
     for instance in tqdm(dataset):
         alt_answer = instance["alt_answer"]
@@ -278,7 +278,6 @@ if __name__ == "__main__":
             classified_dataset = load_from_disk(args.classified_path)
     else:
         classified_dataset = classify_context(dataset)
-
     for context_type in ["HPCHPCE", "LPC"]:
         print(f"Creating edit prompts for {context_type}")
         # Create the prompt for edits
@@ -288,7 +287,6 @@ if __name__ == "__main__":
         output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
         # Step 2: Submit batch job
         batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
-        # batch_id = "batch_67ae770b0ee8819081f9e2587c222715"
         if batch_id:
             # Step 3: Monitor job status
             batch = check_batch_status(batch_id)
