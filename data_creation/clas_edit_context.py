@@ -18,7 +18,7 @@ load_dotenv()
 
 # Load API keys from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Constants
 EDITOR_MODEL_NAME = "gpt-4o"
@@ -160,6 +160,49 @@ def create_edit_prompts(dataset, model_name, context_type):
             i += 1
             f.write("\n")
     print(f'Formatted dataset saved to {os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl")}')
+    return dataset, inputs, input_context
+
+def query_whole_dataset(dataset, prompts, context, context_type):
+    output_contexts = []
+    output_answers = []
+    if context_type == "LPC":
+        key_field = "LPC"
+        dataset = dataset.remove_columns(["LPC_context", "LPC_answer"])
+    else:
+        # Avoid checking Exp score, By default generating explanations for all instance
+        key_field = "HPCE"
+        dataset = dataset.remove_columns(["HPCE_context", "HPCE_answer"])
+            
+    for instance, prompt, context in zip(dataset, prompts, input_context):
+        completion = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "developer", "content": ""},
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+        output = completion.choices[0].message.content
+
+        if key_field == "LPC":
+            # Parse for EditedPassage and NewAnswer
+            match = re.search(r'EditedPassage:\s*(.*?)\s*\n\s*NewAnswer:\s*(.*)', output, re.DOTALL)
+            if match:
+                edited_passage = match.group(1).strip()
+                new_answer = match.group(2).strip()
+            else:
+                raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
+        else:
+            edited_passage = output
+            new_answer = instance["alt_answer"]
+        output_contexts.append(edited_passage)
+        output_answers.append(new_answer)
+    dataset.add_column(f"{key_field}_context", output_contexts)
+    dataset.add_column(f"{key_field}_answer", output_answers)
+    return dataset
+    
 
 def submit_batch_job(input_file_path):
     """
@@ -167,13 +210,13 @@ def submit_batch_job(input_file_path):
     """
     
     print("Uploading intput file...")
-    batch_input_file = client.files.create(
+    batch_input_file = openai_client.files.create(
         file=open(input_file_path, "rb"),
         purpose="batch"
     )
 
     print(batch_input_file)
-    batch = client.batches.create(
+    batch = openai_client.batches.create(
         input_file_id=batch_input_file.id,
         endpoint="/v1/chat/completions",
         completion_window="24h",
@@ -188,7 +231,7 @@ def check_batch_status(batch_id):
     Checks the status of a batch job.
     """
     while True:
-        batch = client.batches.retrieve(batch_id)
+        batch = openai_client.batches.retrieve(batch_id)
 
         print(f"Batch job status: {batch.status}...")
         if batch.status in ["completed", "failed", "cancelled", "expired"]:
@@ -200,7 +243,7 @@ def download_results(batch, output_file_path):
     """
     Downloads the results of a batch job.
     """
-    results = client.files.content(batch.output_file_id)
+    results = openai_client.files.content(batch.output_file_id)
     # The output context is automatically a jsonl file
     with open(output_file_path, "w") as f:
         f.write(results.text)
@@ -259,8 +302,8 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
-    # parser.add_argument('--context_type', type=str, default="HPCHPCE",
-    #                         help='type of context to be generted. HPCHPCE/LPC')
+    parser.add_argument('--use_batch', action="store_true",
+                            help='whether to use the batching feature in OpenAI. Enable it could be slow.')
     parser.add_argument('--classified_path', type=str, default=None,
                             help='the path to classified contexts. If it is not none, then we do not classify the context (into w/ and wo/ explanations) and will load from the given path. \n If "x" is passed, then it load the default classified contexts for each model (classified_context/model_name.jsonl).')
     args = parser.parse_args()
@@ -279,32 +322,38 @@ if __name__ == "__main__":
     else:
         classified_dataset = classify_context(dataset)
     for context_type in ["HPCHPCE", "LPC"]:
+
         print(f"Creating edit prompts for {context_type}")
         # Create the prompt for edits
-        create_edit_prompts(dataset=classified_dataset, model_name=model_name, context_type=context_type)
+        dataset, inputs, input_context = create_edit_prompts(dataset=classified_dataset, model_name=model_name, context_type=context_type)
 
-        os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
-        output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
-        # Step 2: Submit batch job
-        batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
-        if batch_id:
-            # Step 3: Monitor job status
-            batch = check_batch_status(batch_id)
+        if args.use_batch:
+            os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
+            output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
+            # Step 2: Submit batch job
+            batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
+            if batch_id:
+                # Step 3: Monitor job status
+                batch = check_batch_status(batch_id)
 
-            if batch.status == "completed":
-                # Step 4: Download results
-                download_results(batch, output_file_path)
-            else:
-                print(f"Batch job did not complete successfully. Final status: {batch.status}")
+                if batch.status == "completed":
+                    # Step 4: Download results
+                    download_results(batch, output_file_path)
+                else:
+                    print(f"Batch job did not complete successfully. Final status: {batch.status}")
+        else:
+            dataset = query_whole_dataset(dataset, prompts=inputs, context=input_context, context_type=context_type)
+            print(dataset)
 
     output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "HPCHPCE", f"{model_name}.jsonl")
     input_file_path = os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl")
 
-    # Map the OpenAI edits back to the datasets
-    dataset = map_back_to_dataset(classified_data = classified_dataset, context_type = "HPCHPCE", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
+    if args.use_batch:
+        # Map the OpenAI edits back to the datasets
+        dataset = map_back_to_dataset(classified_data = classified_dataset, context_type = "HPCHPCE", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
-    output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "LPC", f"{model_name}.jsonl")
-    dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
+        output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "LPC", f"{model_name}.jsonl")
+        dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v2.jsonl"))
