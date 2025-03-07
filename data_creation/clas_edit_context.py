@@ -199,8 +199,8 @@ def query_whole_dataset(dataset, prompts, context, context_type):
             new_answer = instance["alt_answer"]
         output_contexts.append(edited_passage)
         output_answers.append(new_answer)
-    dataset.add_column(f"{key_field}_context", output_contexts)
-    dataset.add_column(f"{key_field}_answer", output_answers)
+    dataset = dataset.add_column(f"{key_field}_context", output_contexts)
+    dataset = dataset.add_column(f"{key_field}_answer", output_answers)
     return dataset
     
 
@@ -316,16 +316,16 @@ if __name__ == "__main__":
 
     if args.classified_path is not None:
         if args.classified_path == "x":
-            classified_dataset = load_from_disk(os.path.join(os.environ["data_dir"], "intermediate_processing", "classified_context", f"{model_name}.jsonl"))
+            dataset = load_from_disk(os.path.join(os.environ["data_dir"], "intermediate_processing", "classified_context", f"{model_name}.jsonl"))
         else:
-            classified_dataset = load_from_disk(args.classified_path)
+            dataset = load_from_disk(args.classified_path)
     else:
-        classified_dataset = classify_context(dataset)
+        dataset = classify_context(dataset)
     for context_type in ["HPCHPCE", "LPC"]:
 
         print(f"Creating edit prompts for {context_type}")
         # Create the prompt for edits
-        dataset, inputs, input_context = create_edit_prompts(dataset=classified_dataset, model_name=model_name, context_type=context_type)
+        dataset, inputs, input_context = create_edit_prompts(dataset=dataset, model_name=model_name, context_type=context_type)
 
         if args.use_batch:
             os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
