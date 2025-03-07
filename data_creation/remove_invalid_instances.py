@@ -31,7 +31,11 @@ def is_valid(context, question, answer, checker="openai"):
     """
     Return true if the given context-question-answer pair is valid (the context lead to the answer of the given question)
     """
-    prompt = f"Question: {question}\nWith the passage below, output 'yes' if you are able to confirm that the answer to the given question is '{answer}'. Output 'no' otherwise. You should only output 'yes' or 'no'.\n{context}"
+    # v1.0
+    # prompt = f"Question: {question}\nWith the passage below, output 'yes' if you are able to confirm that the answer to the given question is '{answer}'. Output 'no' otherwise. You should only output 'yes' or 'no'.\n{context}"
+
+    # v2.0. NLI test
+    prompt = f"You are a smart natural language inference model, your job is to determine whether the given passage will lead to the given answer to a question. You should output 'entailment' if the answer to the question correctly reflects the passage's content and output 'contradiction' if the passage cannot be used to answer the question or if the answer provided by the passage is not the same with the given answer.\nPassage: {context}, \nQuestion: {question}, Answer: {answer}\n Entailment/Contradiction?: "
 
     if checker == "openai":
         completion = openai_client.chat.completions.create(
@@ -53,7 +57,13 @@ def is_valid(context, question, answer, checker="openai"):
 
         # Strip off the think content
         response = response.split("</think>")[1]
-    return True if "yes" in response else False
+
+    # # Uncomment for debugging mode
+    # if "entailment" not in response.lower():
+    #     print(prompt)
+    #     print(response.lower())
+    #     pdb.set_trace()
+    return True if "entailment" in response.lower() else False
 
 def remove_invalid_instances(dataset):
     valid_data = []
@@ -86,7 +96,7 @@ def remove_invalid_instances(dataset):
         if LPC_valid and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
             valid_data.append(instance)
 
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC_v2.jsonl"))
     print(f"There were {len(dataset) - len(valid_data)} instances that got removed.")
     return Dataset.from_list(valid_data)
 
@@ -103,7 +113,7 @@ if __name__ == "__main__":
     model_name = args.test_model_name
 
     if args.input_file_path is None:
-        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC.jsonl")
+        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v2.jsonl")
     else:
         file_path = args.input_file_path
     
