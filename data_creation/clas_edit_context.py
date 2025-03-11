@@ -31,7 +31,7 @@ def classify_context(dataset):
     """
     dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    dataset = dataset.select([i for i in range(15)])
+    dataset = dataset.select([i for i in range(20)])
     
     classified_data = []
     for instance in tqdm(dataset):
@@ -81,20 +81,22 @@ def classify_context(dataset):
             else:
                 curr_key = "HPCE"
                 spare_key = "HPC"
-            classified_data.append({
-                "question": instance["question"],
-                "NC_context": model_context,
-                "NC_answer": model_answer,
-                "alt_answer": alt_answer,
-                "alt_context": alt_context,
-                f"{curr_key}_answer": alt_answer,
-                f"{curr_key}_context": alt_context,
-                f"{spare_key}_answer": "",
-                f"{spare_key}_context": "",
-                "LPC_context": "",
-                "LPC_answer": "",
-                "conflict_explanation_rating": rating
-            })
+            if alt_context != model_context:
+                # Avoid including invalid instances where there is only one context
+                classified_data.append({
+                    "question": instance["question"],
+                    "NC_context": model_context,
+                    "NC_answer": model_answer,
+                    "alt_answer": alt_answer,
+                    "alt_context": alt_context,
+                    f"{curr_key}_answer": alt_answer,
+                    f"{curr_key}_context": alt_context,
+                    f"{spare_key}_answer": "",
+                    f"{spare_key}_context": "",
+                    "LPC_context": "",
+                    "LPC_answer": "",
+                    "conflict_explanation_rating": rating
+                })
         else:
             raise Exception(f"The output does not contain a rating. Model Output: {response}")
     classified_data = Dataset.from_list(classified_data)
@@ -356,4 +358,4 @@ if __name__ == "__main__":
         dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v2.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v3.jsonl"))

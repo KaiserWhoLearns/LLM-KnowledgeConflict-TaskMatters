@@ -43,9 +43,8 @@ def helper_verify_summary_quality():
 
 def knowledge_free_tasks(raw_dataset):
     # Create knowledge free tasks data
-    system_prompt = "Summarize the information in the given passage, you should only output the summary. With the summary, you should still be able to answer the given question. For example: " + \
-        "Input-Passage: The missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt. Input-Question: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile? \n Output-Summary: The missile was partially derived from the P-500 Bazalt\n"
-    # TODO: Quality of Summarization
+    system_prompt = "Summarize the information in the given passage, you should only output the summary. With the summary and without accessing to external sources, you should still be able to answer the given question using the given answer. For example: " + \
+        "Input-Passage: The missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt.\nInput-Question: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?\nInput-Answer: No \n Output-Summary: The P-700 Granit missile was partially derived from the P-500 Bazalt, with features inspired from other missile system.\n"
     def create_kf_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_KF_input"] = system_prompt + "Input-Passage" + example[f"{context_type}_context"] + "Input-Question: " + example["question"] + "\nOutput-Summary: "
@@ -63,8 +62,9 @@ def knowledge_free_tasks(raw_dataset):
             summary = completion.choices[0].message.content
             example[f"{context_type}_KF_output"] = summary
             # Whether the summariztion can still be used to answer the question
-            example["KF_valid"] = is_valid(context=summary, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
-            if not example["KF_valid"]:
+            example[f"KF_{context_type}_openai_valid"] = is_valid(context=summary, question=example["question"], answer=example[f"{context_type}_answer"], checker="openai")
+            example[f"KF_{context_type}_tog_valid"] = is_valid(context=summary, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
+            if not example[f"KF_{context_type}_valid"]:
                 print("Detected one invalid instance after summarziation.")
             # example[f"{context_type}_KF_output"] = 
             # len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
@@ -73,6 +73,7 @@ def knowledge_free_tasks(raw_dataset):
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
     processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_exampleLPC.jsonl"))
+    # TODO: Compute invalid rate
     return processed_dataset
 
 def contextual_knowledge_tasks(raw_dataset):
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC.jsonl"))["train"]
+    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC_v3.jsonl"))["train"]
 
     knowledge_free_tasks(raw_dataset)
     # contextual_knowledge_tasks(raw_dataset)
