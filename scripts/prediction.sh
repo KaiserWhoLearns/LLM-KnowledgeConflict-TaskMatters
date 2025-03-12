@@ -3,7 +3,12 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="meta-llama/Llama-3.2-3B-Instruct"
+export task_type="KF"
 
+declare -A TASK_TYPE_PRETTY
+TASK_TYPE_PRETTY["KF"]="knowledge_free"
+TASK_TYPE_PRETTY["CK"]="contextual_knowledge"
+TASK_TYPE_PRETTY["PK"]="parametric_knowledge"
 declare -A MODEL_NAME_TO_PRETTY 
 MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.2-3B-Instruct"]="llama3.2-3B-Instruct"
 MODEL_NAME_TO_PRETTY["mistralai/Mistral-7B-Instruct-v0.3"]="mistral7B"
@@ -45,6 +50,7 @@ cd $base_dir
 
 python model_runs/predict.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --task_type "KF"
+    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_exampleLPC_v3_togcheck.jsonl \
+    --task_type $task_type
 
 EOT

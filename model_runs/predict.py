@@ -1,6 +1,15 @@
 
+import os
+import sys
+import pdb
+sys.path.append(os.getcwd())
+import argparse
 from datasets import load_dataset, Dataset
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+from tqdm import tqdm
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PRETTY_TO_MODEL_NAME = {
     "llama3.2-3B-Instruct": "meta-llama/Llama-3.2-3B-Instruct",
@@ -10,7 +19,7 @@ PRETTY_TO_MODEL_NAME = {
 }
 
 CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]
-def generate_text_for_dataset(dataset, task, generator, max_length=100):
+def generate_text_for_dataset(dataset, task, generator, max_length=150):
     """
     task = {KF, CK, PK}
     """
@@ -40,8 +49,11 @@ if __name__ == "__main__":
                             help='name of a dataset')
     parser.add_argument('--task_type', type=str, default="PK",
                             help='type of task. = PK, CK, KF')
+    parser.add_argument('--data_path', type=str, default=None,
+                            help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
                             help='save pred to')
+    
     args = parser.parse_args()
     model_name = args.test_model_name
     model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
@@ -50,20 +62,23 @@ if __name__ == "__main__":
     generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
     # Load the corresponding data
-    if args.task_type == "KF":
-        task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl")
-    elif args.task_type == "CK":
-        task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl")
-    elif args.task_type == "PK":
-        task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge.jsonl")
+    if args.data_path is not None:
+        task_file_path = args.data_path
     else:
-        raise Exception("Undefined task type: " + args.task_type)
+        if args.task_type == "KF":
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl")
+        elif args.task_type == "CK":
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl")
+        elif args.task_type == "PK":
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge.jsonl")
+        else:
+            raise Exception("Undefined task type: " + args.task_type)
     dataset = load_dataset("json", data_files=task_file_path)["train"]
 
     # run prediction
-    pred_res = generate_text_for_dataset(dataset, task, generator, max_length=100)
+    pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100)
 
     if args.save_dir is None:
-        pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}.jsonl"))
+        pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}.jsonl"))
     else:
         pred_res.to_json(save_dir)
