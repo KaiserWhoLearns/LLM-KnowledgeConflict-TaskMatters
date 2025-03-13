@@ -145,7 +145,7 @@ def create_edit_prompts(dataset, model_name, context_type):
                 inputs.append(f"You are a smart editor that removes the explanation in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. It should not contain any reasoning of why the answer should not be {instance['NC_answer']}. \n You should only output the edited passage.")
             else:
                 # High Plausibiliy Contradiction with Explanation
-                inputs.append(f"You are a smart editor that adds a contrastive explanation that is logically coherent in the given passage. Your explanation should explain why the answer to the question {instance['question']} is the answer '{alt_answer}' instead of {instance['NC_answer']}. \n You should only output the edited passage.")
+                inputs.append(f"You are a smart editor that adds a contrastive explanation that is logically coherent in the given passage. Your edit should explain why the answer to the question {instance['question']} is the answer '{alt_answer}' instead of {instance['NC_answer']}. \n However, you should write it as a statement, instead of explicitly call out the given answer. You should only output the edited passage.")
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
@@ -358,4 +358,4 @@ if __name__ == "__main__":
         dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v3.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v4.jsonl"))
