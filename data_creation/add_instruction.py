@@ -41,13 +41,13 @@ def legacy_kf_count_char(raw_dataset):
 def helper_verify_summary_quality():
     pass
 
-def knowledge_free_tasks(raw_dataset):
+def knowledge_free_tasks_summarization(raw_dataset):
     # Create knowledge free tasks data
     system_prompt = "Summarize the information in the given passage, you should only output the summary. With the summary and without accessing to external sources, you should still be able to answer the given question using the given answer. For example: " + \
         "Input-Passage: The missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt.\nInput-Question: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?\nInput-Answer: No \n Output-Summary: The P-700 Granit missile was partially derived from the P-500 Bazalt, with features inspired from other missile system.\n"
     def create_kf_instance(example):
         for context_type in CONTEXT_TYPES:
-            example[f"{context_type}_KF_input"] = system_prompt + "Input-Passage" + example[f"{context_type}_context"] + "Input-Question: " + example["question"] + "\nOutput-Summary: "
+            example[f"{context_type}_KF_input"] = system_prompt + "Input-Passage: " + example[f"{context_type}_context"] + "Input-Question: " + example["question"] + "\nOutput-Summary: "
             # Query GPT-4 for the summarization
             completion = client.chat.completions.create(
                 model=GEN_MODEL_NAME,
@@ -72,7 +72,42 @@ def knowledge_free_tasks(raw_dataset):
     processed_dataset = raw_dataset.map(create_kf_instance)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
-    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_exampleLPC.jsonl"))
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_summary.jsonl"))
+    # TODO: Compute invalid rate
+    return processed_dataset
+
+def knowledge_free_tasks_extraction(raw_dataset):
+    # Create knowledge free tasks data for extractiveQA
+    # Note: Assumption of extraction: there is a single sentence that the model can extract
+    system_prompt = "You are an extractive question-answering model. Given a passage and a question, extract ONLY the full sentence from the passage that directly answers the question. Do not generate summaries or paraphrase. Only return the complete sentence that contains the answer.\n Passage: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt.\nQuestion: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?\nAnswer: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development."
+    def create_kf_instance(example):
+        for context_type in CONTEXT_TYPES:
+            example[f"{context_type}_KFextract_input"] = system_prompt + "Passage: " + example[f"{context_type}_context"] + "Question: " + example["question"] + "\nAnswer: "
+            # Query GPT-4 for the summarization
+            completion = client.chat.completions.create(
+                model=GEN_MODEL_NAME,
+                messages=[
+                    {"role": "developer", "content": ""},
+                    {
+                        "role": "user",
+                        "content": example[f"{context_type}_KFextract_input"]
+                    }
+                ]
+            )
+            answer = completion.choices[0].message.content
+            example[f"{context_type}_KFextract_output"] = answer
+            # Whether the summariztion can still be used to answer the question
+            example[f"KF_{context_type}_openai_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="openai")
+            example[f"KF_{context_type}_tog_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
+            if not example[f"KF_{context_type}_tog_valid"] or not example[f"KF_{context_type}_openai_valid"]:
+                print("Detected one invalid instance after summarziation.")
+            # example[f"{context_type}_KF_output"] = 
+            # len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
+        return example
+    processed_dataset = raw_dataset.map(create_kf_instance)
+    # Write to local
+    os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_extract.jsonl"))
     # TODO: Compute invalid rate
     return processed_dataset
 
@@ -116,8 +151,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC_v3.jsonl"))["train"]
+    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v3.jsonl"))["train"]
 
-    # knowledge_free_tasks(raw_dataset)
+    knowledge_free_tasks_extraction(raw_dataset)
     # contextual_knowledge_tasks(raw_dataset)
-    parametric_knowledge_tasks(raw_dataset)
+    # parametric_knowledge_tasks(raw_dataset)

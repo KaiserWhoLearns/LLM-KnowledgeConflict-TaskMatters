@@ -358,4 +358,4 @@ if __name__ == "__main__":
         dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v4.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v4.jsonl"))

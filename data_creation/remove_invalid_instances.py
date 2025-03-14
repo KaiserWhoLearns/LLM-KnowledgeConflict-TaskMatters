@@ -96,7 +96,7 @@ def remove_invalid_instances(dataset):
         if LPC_valid and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
             valid_data.append(instance)
 
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_exampleLPC_v3.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v3.jsonl"))
     print(f"There were {len(dataset) - len(valid_data)} instances that got removed.")
     return Dataset.from_list(valid_data)
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     model_name = args.test_model_name
 
     if args.input_file_path is None:
-        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_exampleLPC_v3.jsonl")
+        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v3.jsonl")
     else:
         file_path = args.input_file_path
     
