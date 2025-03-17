@@ -97,6 +97,8 @@ def knowledge_free_tasks_extraction(raw_dataset):
             # Whether the extraction is in the context
             if answer.lower() not in example[f"{context_type}_KFextract_input"].lower():
                 print("Detected one invalid instance after extraction.")
+                print("Context = ", example[f"{context_type}_KFextract_input"].lower())
+                print("Answer = ", answer)
                 example[f"KF_{context_type}_extract_valid"] = False
             else:
                 example[f"KF_{context_type}_extract_valid"] = True
