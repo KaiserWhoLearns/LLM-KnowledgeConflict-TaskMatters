@@ -66,8 +66,6 @@ def knowledge_free_tasks_summarization(raw_dataset):
             example[f"KF_{context_type}_tog_valid"] = is_valid(context=summary, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
             if not example[f"KF_{context_type}_tog_valid"] or not example[f"KF_{context_type}_openai_valid"]:
                 print("Detected one invalid instance after summarziation.")
-            # example[f"{context_type}_KF_output"] = 
-            # len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
         return example
     processed_dataset = raw_dataset.map(create_kf_instance)
     # Write to local
@@ -96,18 +94,23 @@ def knowledge_free_tasks_extraction(raw_dataset):
             )
             answer = completion.choices[0].message.content
             example[f"{context_type}_KFextract_output"] = answer
+            # Whether the extraction is in the context
+            if answer.lower() not in example[f"{context_type}_KFextract_input"].lower():
+                print("Detected one invalid instance after extraction.")
+                example[f"KF_{context_type}_extract_valid"] = False
+            else:
+                example[f"KF_{context_type}_extract_valid"] = True
+            # The extracted sentence may not provide enough context to answer the question
             # Whether the summariztion can still be used to answer the question
-            example[f"KF_{context_type}_openai_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="openai")
-            example[f"KF_{context_type}_tog_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
-            if not example[f"KF_{context_type}_tog_valid"] or not example[f"KF_{context_type}_openai_valid"]:
-                print("Detected one invalid instance after summarziation.")
-            # example[f"{context_type}_KF_output"] = 
-            # len(re.findall(r'[A-Za-z]', example[f"{context_type}_context"]))
+            # example[f"KF_{context_type}_openai_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="openai")
+            # example[f"KF_{context_type}_tog_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
+            # if not example[f"KF_{context_type}_tog_valid"] or not example[f"KF_{context_type}_openai_valid"]:
+            #     print("Detected one invalid instance after summarziation.")
         return example
     processed_dataset = raw_dataset.map(create_kf_instance)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
-    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_extract.jsonl"))
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_extract_v4.jsonl"))
     # TODO: Compute invalid rate
     return processed_dataset
 
@@ -151,7 +154,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v3.jsonl"))["train"]
+    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v4.jsonl"))["train"]
 
     knowledge_free_tasks_extraction(raw_dataset)
     # contextual_knowledge_tasks(raw_dataset)

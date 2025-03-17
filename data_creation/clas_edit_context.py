@@ -145,7 +145,9 @@ def create_edit_prompts(dataset, model_name, context_type):
                 inputs.append(f"You are a smart editor that removes the explanation in the given passage, such that the answer to the question {instance['question']} is '{alt_answer}'. It should not contain any reasoning of why the answer should not be {instance['NC_answer']}. \n You should only output the edited passage.")
             else:
                 # High Plausibiliy Contradiction with Explanation
-                inputs.append(f"You are a smart editor that adds a contrastive explanation that is logically coherent in the given passage. Your edit should explain why the answer to the question {instance['question']} is the answer '{alt_answer}' instead of {instance['NC_answer']}. \n However, you should write it as a statement, instead of explicitly call out the given answer. You should only output the edited passage.")
+                inputs.append(f"Base on the given passage, write a coherent and informative passage that naturally explains why {alt_answer} is the correct explanation or conclusion to the question {instance['question']} instead of {instance['NC_answer']}. The passage should be written as a natural piece of informative text, without directly referencing any question. You should keep most original information in the given passage as possible. Ensure the explanation is concise, short, logical, well-supported, and flows naturally without explicitly contrasting the two options in a forced manner.")
+                # V3 prompt
+                # "You are a smart editor that adds a contrastive explanation that is logically coherent in the given passage. Your edit should explain why the answer to the question {instance['question']} is the answer '{alt_answer}' instead of {instance['NC_answer']}. \n However, you should write it as a statement, instead of explicitly call out the given answer. You should only output the edited passage.")
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
@@ -190,7 +192,8 @@ def query_whole_dataset(dataset, prompts, context, context_type):
 
         if key_field == "LPC":
             # Parse for EditedPassage and NewAnswer
-            match = re.search(r'EditedPassage:\s*(.*?)\s*\n\s*NewAnswer:\s*(.*)', output, re.DOTALL)
+            # match = re.search(r'EditedPassage:\s*(.*?)\s*\n\s*NewAnswer:\s*(.*)', output, re.DOTALL)
+            match = re.search(r'EditedPassage:\s*(.*?)\s*\s*NewAnswer:\s*(.*)', output, re.DOTALL)
             if match:
                 edited_passage = match.group(1).strip()
                 new_answer = match.group(2).strip()
