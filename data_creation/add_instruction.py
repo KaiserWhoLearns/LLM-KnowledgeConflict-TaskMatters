@@ -110,6 +110,9 @@ def knowledge_free_tasks_extraction(raw_dataset):
             #     print("Detected one invalid instance after summarziation.")
         return example
     processed_dataset = raw_dataset.map(create_kf_instance)
+    for context_type in CONTEXT_TYPES:
+        # If any of the contexts are invalid, remove them
+        processed_dataset = processed_dataset.filter(lambda example: example[f"KF_{context_type}_extract_valid"] is True)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
     processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_extract_v4.jsonl"))
