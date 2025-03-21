@@ -77,7 +77,7 @@ def knowledge_free_tasks_summarization(raw_dataset):
 def knowledge_free_tasks_extraction(raw_dataset):
     # Create knowledge free tasks data for extractiveQA
     # Note: Assumption of extraction: there is a single sentence that the model can extract
-    system_prompt = "You are an extractive question-answering model. Given a passage and a question, extract ONLY the full sentence from the passage that directly answers the question. Do not generate summaries or paraphrase. Only return the complete sentence that contains the answer.\n Passage: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt.\nQuestion: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?\nAnswer: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development."
+    system_prompt = "You are an extractive question-answering model. Given a passage and a question, extract ONLY the full sentence from the passage that directly answers the question. Do not generate summaries or paraphrase. Only return the complete sentence that contains the answer. If there are multiple aceeptable sentences, you should return all of them, with each one speparated by a period.\n Passage: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt.\nQuestion: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?\nAnswer: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt."
     def create_kf_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_KFextract_input"] = system_prompt + "Passage: " + example[f"{context_type}_context"] + "Question: " + example["question"] + "\nAnswer: "
@@ -93,21 +93,23 @@ def knowledge_free_tasks_extraction(raw_dataset):
                 ]
             )
             answer = completion.choices[0].message.content
-            example[f"{context_type}_KFextract_output"] = answer
+            acceptable_answers = answer.split(".")
+            # Remove leading/trailing whitespace and filter out empty strings
+            example[f"{context_type}_KFextract_output"] = {ans.strip() for ans in acceptable_answers if ans.strip()}
             # Whether the extraction is in the context
-            if answer.lower() not in example[f"{context_type}_KFextract_input"].lower():
-                print("Detected one invalid instance after extraction.")
-                print("Context = ", example[f"{context_type}_KFextract_input"].lower())
-                print("Answer = ", answer)
+            valid_ans = set()
+            for answer in example[f"{context_type}_KFextract_output"]:
+                if answer.lower() not in example[f"{context_type}_KFextract_input"].lower():
+                    print("Detected one invalid answer after extraction.")
+                    print("Context = ", example[f"{context_type}_KFextract_input"].lower())
+                    print("Answer = ", answer)
+                else:
+                    valid_ans.add(answer)
+            example[f"{context_type}_KFextract_output"] = valid_ans
+            if len(valid_ans) == 0:
                 example[f"KF_{context_type}_extract_valid"] = False
             else:
                 example[f"KF_{context_type}_extract_valid"] = True
-            # The extracted sentence may not provide enough context to answer the question
-            # Whether the summariztion can still be used to answer the question
-            # example[f"KF_{context_type}_openai_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="openai")
-            # example[f"KF_{context_type}_tog_valid"] = is_valid(context=answer, question=example["question"], answer=example[f"{context_type}_answer"], checker="tog")
-            # if not example[f"KF_{context_type}_tog_valid"] or not example[f"KF_{context_type}_openai_valid"]:
-            #     print("Detected one invalid instance after summarziation.")
         return example
     processed_dataset = raw_dataset.map(create_kf_instance)
     for context_type in CONTEXT_TYPES:

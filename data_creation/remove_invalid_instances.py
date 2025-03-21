@@ -93,7 +93,8 @@ def remove_invalid_instances(dataset):
             
         
         # Check whether the given context can be used to imply the answer
-        if LPC_valid and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
+        # Check whether the original context is valid as well
+        if LPC_valid and is_valid(context=instance["NC_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog") and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
             valid_data.append(instance)
 
     dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v4.jsonl"))
