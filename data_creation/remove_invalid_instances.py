@@ -71,7 +71,9 @@ def remove_invalid_instances(dataset):
     for instance in dataset:
         # Check whether LPC is LPC enough
         # pdb.set_trace()
-        prompt_lpc = f"You are a experienced and wise scholar. Your job is to rate from 1-5 on whether the story given in the passage is likely to happen or not based on real-world knowledge. You should only output the scores without any justification, with 1 indicates least likely to happen, and 5 to be most likely to happen.\n {instance['LPC_context']}"
+        # Give both contexts
+        prompt_lpc = f"You are an experienced and wise scholar. Your job is to rate from 1-5 on whether the target passage is likely to happen or not based on real-world knowledge. You will be given two passages that contain real-world knowledge. You should only output the scores without any justification, with 1 indicates least likely to happen, and 5 to be most likely to happen.\n Passage 1:  {instance['NC_context']}\n Passage 2: {instance['HPC_context']}\nTarget Passage: {instance['LPC_context']}"
+        # prompt_lpc = f"You are a experienced and wise scholar. Your job is to rate from 1-5 on whether the statement given in the passage is likely to happen or not based on real-world knowledge. You should only output the scores without any justification, with 1 indicates least likely to happen, and 5 to be most likely to happen.\n {instance['LPC_context']}"
         # pdb.set_trace()
         completion = openai_client.chat.completions.create(
             model="gpt-4o",
@@ -94,10 +96,10 @@ def remove_invalid_instances(dataset):
         
         # Check whether the given context can be used to imply the answer
         # Check whether the original context is valid as well
-        if LPC_valid and is_valid(context=instance["NC_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog") and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
+        if LPC_valid and is_valid(context=instance["NC_context"],question=instance["question"],answer=instance["NC_answer"], checker="tog") and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
             valid_data.append(instance)
 
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v4.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v5.jsonl"))
     print(f"There were {len(dataset) - len(valid_data)} instances that got removed.")
     return Dataset.from_list(valid_data)
 
@@ -114,7 +116,7 @@ if __name__ == "__main__":
     model_name = args.test_model_name
 
     if args.input_file_path is None:
-        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v4.jsonl")
+        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v5.jsonl")
     else:
         file_path = args.input_file_path
     

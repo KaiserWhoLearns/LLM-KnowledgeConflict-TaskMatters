@@ -106,7 +106,7 @@ def classify_context(dataset):
     classified_data.save_to_disk(save_path)
     return classified_data
 
-def format_LPC_prompt(question, context, answer):
+def format_LPC_prompt(question, context, answer, nc_answer):
     """
     Code to format the prompt for LPC generation
     """
@@ -115,7 +115,7 @@ def format_LPC_prompt(question, context, answer):
     curr_prompt_file = open(prompt_file, "r")
     prompt_template = curr_prompt_file.read()
     curr_prompt_file.close()
-    return prompt_template.format(question=question, answer=answer, context=context)
+    return prompt_template.format(question=question, answer=answer, nc_answer=nc_answer, context=context)
         
 
 def create_edit_prompts(dataset, model_name, context_type):
@@ -151,7 +151,7 @@ def create_edit_prompts(dataset, model_name, context_type):
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
-            inputs.append(format_LPC_prompt(question = instance['question'], context = alt_context, answer = alt_answer))
+            inputs.append(format_LPC_prompt(question = instance['question'], context = alt_context, answer = alt_answer, nc_answer = instance['NC_answer']))
             input_context.append(alt_context)
         else:
             raise Exception("Unsupported context type")
@@ -361,4 +361,4 @@ if __name__ == "__main__":
         dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v4.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v5.jsonl"))

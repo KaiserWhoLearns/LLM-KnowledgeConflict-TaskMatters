@@ -65,8 +65,8 @@ if __name__ == "__main__":
     if args.data_path is not None:
         task_file_path = args.data_path
     else:
-        if args.task_type == "KF":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free.jsonl")
+        if "KF" in args.task_type:
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_{args.task_type}.jsonl")
         elif args.task_type == "CK":
             task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl")
         elif args.task_type == "PK":
