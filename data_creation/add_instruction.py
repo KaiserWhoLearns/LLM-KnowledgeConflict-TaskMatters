@@ -74,7 +74,7 @@ def knowledge_free_tasks_summarization(raw_dataset):
     # TODO: Compute invalid rate
     return processed_dataset
 
-def knowledge_free_tasks_extraction(raw_dataset):
+def knowledge_free_tasks_extraction(raw_dataset, version_name):
     # Create knowledge free tasks data for extractiveQA
     # Note: Assumption of extraction: there is a single sentence that the model can extract
     system_prompt = "You are an extractive question-answering model. Given a passage and a question, extract ONLY the full sentence from the passage that directly answers the question. Do not generate summaries or paraphrase. Only return the complete sentence that contains the answer. If there are multiple aceeptable sentences, you should return all of them, with each one speparated by a period.\n Passage: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt.\nQuestion: Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?\nAnswer: The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements could have also influenced its development. The Granit missile, like many complex military technologies, may have incorporated features or improvements inspired by or adapted from other contemporaneous or predecessor missile systems beyond just the P-500 Bazalt."
@@ -117,11 +117,11 @@ def knowledge_free_tasks_extraction(raw_dataset):
         processed_dataset = processed_dataset.filter(lambda example: example[f"KF_{context_type}_extract_valid"] is True)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
-    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_extract_v4.jsonl"))
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_knowledge_free_extract_{version_name}.jsonl"))
     # TODO: Compute invalid rate
     return processed_dataset
 
-def contextual_knowledge_tasks(raw_dataset):
+def contextual_knowledge_tasks(raw_dataset, version_name):
     """
     Create knowledge free tasks data
     """
@@ -134,10 +134,10 @@ def contextual_knowledge_tasks(raw_dataset):
     processed_dataset = raw_dataset.map(create_ck_instance)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
-    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl"))
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge_{version_name}.jsonl"))
     return processed_dataset
 
-def parametric_knowledge_tasks(raw_dataset):
+def parametric_knowledge_tasks(raw_dataset, version_name):
     # TODO: What is the best way for this task? Should we allow the model to combine? Should we pass both contexts?
     system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You can combine your own knowledge along with the knowledge provided by the source. However, the provided source is not always reliable."
     # v0-potential to try
@@ -150,7 +150,7 @@ def parametric_knowledge_tasks(raw_dataset):
     processed_dataset = raw_dataset.map(create_pk_instance)
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
-    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge.jsonl"))
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge_{version_name}.jsonl"))
     return processed_dataset
 
 if __name__ == "__main__":
@@ -161,8 +161,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v4.jsonl"))["train"]
+    version_name = "v5"
+    raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
 
-    knowledge_free_tasks_extraction(raw_dataset)
-    # contextual_knowledge_tasks(raw_dataset)
-    # parametric_knowledge_tasks(raw_dataset)
+    knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
+    contextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    parametric_knowledge_tasks(raw_dataset, version_name=version_name)

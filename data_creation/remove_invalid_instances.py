@@ -56,7 +56,11 @@ def is_valid(context, question, answer, checker="openai"):
         ).choices[0].message.content
 
         # Strip off the think content
-        response = response.split("</think>")[1]
+        try:
+            response = response.split("</think>")[1]
+        except:
+            # Unjudgable instance, model does not think
+            return False
 
     # # Uncomment for debugging mode
     # if "entailment" not in response.lower():
@@ -65,14 +69,15 @@ def is_valid(context, question, answer, checker="openai"):
     #     pdb.set_trace()
     return True if "entailment" in response.lower() else False
 
-def remove_invalid_instances(dataset):
+def remove_invalid_instances(dataset, save_versionname):
     valid_data = []
     # Loop through the dataset
+    not_conflicting_LPC = 0
     for instance in dataset:
         # Check whether LPC is LPC enough
         # pdb.set_trace()
         # Give both contexts
-        prompt_lpc = f"You are an experienced and wise scholar. Your job is to rate from 1-5 on whether the target passage is likely to happen or not based on real-world knowledge. You will be given two passages that contain real-world knowledge. You should only output the scores without any justification, with 1 indicates least likely to happen, and 5 to be most likely to happen.\n Passage 1:  {instance['NC_context']}\n Passage 2: {instance['HPC_context']}\nTarget Passage: {instance['LPC_context']}"
+        prompt_lpc = f"You are an experienced and wise scholar. Your job is to rate from 1-5 on whether the **target passage** is likely to happen or not based on real-world knowledge. You will be given two passages (Passage 1 and Passage 2) that contain real-world knowledge, both of them have a plausibility rating of 5. You should only output the scores without any justification, with 1 indicates that the Target Passage is least likely to happen, and 5 to be most likely to happen.\n Passage 1:  {instance['NC_context']}\n Passage 2: {instance['HPC_context']}\nTarget Passage: {instance['LPC_context']}"
         # prompt_lpc = f"You are a experienced and wise scholar. Your job is to rate from 1-5 on whether the statement given in the passage is likely to happen or not based on real-world knowledge. You should only output the scores without any justification, with 1 indicates least likely to happen, and 5 to be most likely to happen.\n {instance['LPC_context']}"
         # pdb.set_trace()
         completion = openai_client.chat.completions.create(
@@ -96,10 +101,15 @@ def remove_invalid_instances(dataset):
         
         # Check whether the given context can be used to imply the answer
         # Check whether the original context is valid as well
+        if instance["NC_answer"].lower() == instance["LPC_answer"].lower():
+            print("NC answer equals to LPC answer, LPC Answer: ", instance["LPC_answer"])
+            not_conflicting_LPC += 1
         if LPC_valid and is_valid(context=instance["NC_context"],question=instance["question"],answer=instance["NC_answer"], checker="tog") and is_valid(context=instance["HPCE_context"],question=instance["question"],answer=instance["HPCE_answer"], checker="tog"):
+            # Removing the LPC instances whose answer is not in conflict with the NC answer
             valid_data.append(instance)
 
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_v5.jsonl"))
+    print(f"There are {not_conflicting_LPC} not conflicting LPC instances.")
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{save_versionname}.jsonl"))
     print(f"There were {len(dataset) - len(valid_data)} instances that got removed.")
     return Dataset.from_list(valid_data)
 
@@ -115,12 +125,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
 
+    version_name = "full"
     if args.input_file_path is None:
-        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v5.jsonl")
+        file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_{version_name}.jsonl")
     else:
         file_path = args.input_file_path
     
     # Load the written dataset
     processed_dataset = load_dataset("json", data_files=file_path)["train"]
 
-    remove_invalid_instances(processed_dataset)
+    remove_invalid_instances(processed_dataset, save_versionname=version_name)

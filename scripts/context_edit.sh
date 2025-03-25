@@ -30,7 +30,7 @@ sbatch <<EOT
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --gpus=1
-#SBATCH --time=0-15:00:00 # Max runtime in DD-HH:MM:SS format.
+#SBATCH --time=0-24:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
@@ -44,6 +44,7 @@ conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 cd $base_dir
 
 python data_creation/clas_edit_context.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]}
+    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --use_batch
 
 EOT

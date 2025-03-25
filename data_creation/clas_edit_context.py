@@ -31,7 +31,7 @@ def classify_context(dataset):
     """
     dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    dataset = dataset.select([i for i in range(20)])
+    # dataset = dataset.select([i for i in range(20)])
     
     classified_data = []
     for instance in tqdm(dataset):
@@ -132,7 +132,7 @@ def create_edit_prompts(dataset, model_name, context_type):
     # Remove the ones that the model does not have parametirc knowledge
     # dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    dataset = dataset.select([i for i in range(15)])
+    # dataset = dataset.select([i for i in range(15)])
 
     for instance in tqdm(dataset):
         alt_answer = instance["alt_answer"]
@@ -198,7 +198,9 @@ def query_whole_dataset(dataset, prompts, context, context_type):
                 edited_passage = match.group(1).strip()
                 new_answer = match.group(2).strip()
             else:
-                raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
+                edited_passage = ""
+                new_answer = ""
+                # raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
         else:
             edited_passage = output
             new_answer = instance["alt_answer"]
@@ -284,14 +286,17 @@ def map_back_to_dataset(classified_data, context_type, openai_input_file_path, o
         # Update the corresponding field
         if key_field == "LPC":
             # Parse for EditedPassage and NewAnswer
-            match = re.search(r'EditedPassage:\s*(.*?)\s*\n\s*NewAnswer:\s*(.*)', output, re.DOTALL)
+            match = re.search(r'EditedPassage:\s*(.*?)\s*\s*NewAnswer:\s*(.*)', output, re.DOTALL)
             if match:
                 edited_passage = match.group(1).strip()
                 new_answer = match.group(2).strip()
                 classified_data[idx][f"{key_field}_context"] = edited_passage
                 classified_data[idx][f"{key_field}_answer"] = new_answer
             else:
-                raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
+                classified_data[idx][f"{key_field}_context"] = ""
+                classified_data[idx][f"{key_field}_answer"] = ""
+                print(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
+                # raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
         else:
             classified_data[idx][f"{key_field}_context"] = output
             classified_data[idx][f"{key_field}_answer"] = instance["alt_answer"]
@@ -318,6 +323,7 @@ if __name__ == "__main__":
 
     # Load from derived model knowledge
     dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
+    print("Length of raw dataset = ", len(dataset))
 
     if args.classified_path is not None:
         if args.classified_path == "x":
@@ -335,7 +341,7 @@ if __name__ == "__main__":
         if args.use_batch:
             os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
             output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", context_type, f"{model_name}.jsonl")
-            # Step 2: Submit batch job
+            # # Step 2: Submit batch job
             batch_id = submit_batch_job(os.path.join(os.environ["data_dir"], "temp", f"{model_name}_edit_input.jsonl"))
             if batch_id:
                 # Step 3: Monitor job status
@@ -355,10 +361,10 @@ if __name__ == "__main__":
 
     if args.use_batch:
         # Map the OpenAI edits back to the datasets
-        dataset = map_back_to_dataset(classified_data = classified_dataset, context_type = "HPCHPCE", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
+        dataset = map_back_to_dataset(classified_data = dataset, context_type = "HPCHPCE", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
         output_file_path = os.path.join(os.environ["data_dir"], "intermediate_processing", "LPC", f"{model_name}.jsonl")
         dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_v5.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_full.jsonl"))
