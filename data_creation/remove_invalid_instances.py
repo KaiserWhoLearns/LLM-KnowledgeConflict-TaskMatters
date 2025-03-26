@@ -115,7 +115,6 @@ def remove_invalid_instances(dataset, save_versionname):
 
 if __name__ == "__main__":
     get_constant()
-
     parser = argparse.ArgumentParser()
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
@@ -125,7 +124,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
 
-    version_name = "full"
+    version_name = "full_v2"
     if args.input_file_path is None:
         file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_{version_name}.jsonl")
     else:

@@ -23,15 +23,15 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 # Constants
 EDITOR_MODEL_NAME = "gpt-4o"
 
-def classify_context(dataset):
+def classify_context(dataset, pilot_run=False):
     """
     Dataset = an output from "get_parametric_knowledge.py"
     Classify the context into NC, HPC, HPCE, LPC
     We already know what is NC. Existing evidence cannot be LPC. Thus, we just need to put the conflicting context into HPC v.s. HPCE
     """
     dataset = dataset.filter(lambda example: example[model_name] != 0)
-    # TODO: Test
-    # dataset = dataset.select([i for i in range(20)])
+    if pilot_run:
+        dataset = dataset.select([i for i in range(20)])
     
     classified_data = []
     for instance in tqdm(dataset):
@@ -116,9 +116,20 @@ def format_LPC_prompt(question, context, answer, nc_answer):
     prompt_template = curr_prompt_file.read()
     curr_prompt_file.close()
     return prompt_template.format(question=question, answer=answer, nc_answer=nc_answer, context=context)
+
+def format_long_LPC_prompt(question, context1, context2, nc_answer):
+    """
+    Code to format the prompt for LPC generation
+    """
+    # Load the prompt
+    prompt_file = os.path.join(os.environ["base_dir"], "prompts", "LPC_long.txt")
+    curr_prompt_file = open(prompt_file, "r")
+    prompt_template = curr_prompt_file.read()
+    curr_prompt_file.close()
+    return prompt_template.format(question=question, nc_answer=nc_answer, context1=context1, context2=context2)
         
 
-def create_edit_prompts(dataset, model_name, context_type):
+def create_edit_prompts(dataset, model_name, context_type, pilot_run=False):
     """
     Dataset = an output from "get_parametric_knowledge.py"
     HPC/HPCE
@@ -132,7 +143,8 @@ def create_edit_prompts(dataset, model_name, context_type):
     # Remove the ones that the model does not have parametirc knowledge
     # dataset = dataset.filter(lambda example: example[model_name] != 0)
     # TODO: Test
-    # dataset = dataset.select([i for i in range(15)])
+    if pilot_run:
+        dataset = dataset.select([i for i in range(15)])
 
     for instance in tqdm(dataset):
         alt_answer = instance["alt_answer"]
@@ -151,7 +163,8 @@ def create_edit_prompts(dataset, model_name, context_type):
             input_context.append(alt_context)
         elif context_type == "LPC":
             # Low plausibility Contradiction
-            inputs.append(format_LPC_prompt(question = instance['question'], context = alt_context, answer = alt_answer, nc_answer = instance['NC_answer']))
+            inputs.append(format_long_LPC_prompt(question = instance['question'], context1=alt_context, context2=instance['NC_context'], nc_answer=instance['NC_answer']))
+            # inputs.append(format_LPC_prompt(question = instance['question'], context = alt_context, answer = alt_answer, nc_answer = instance['NC_answer']))
             input_context.append(alt_context)
         else:
             raise Exception("Unsupported context type")
@@ -176,7 +189,6 @@ def query_whole_dataset(dataset, prompts, context, context_type):
         # Avoid checking Exp score, By default generating explanations for all instance
         key_field = "HPCE"
         dataset = dataset.remove_columns(["HPCE_context", "HPCE_answer"])
-            
     for instance, prompt, context in zip(dataset, prompts, input_context):
         completion = openai_client.chat.completions.create(
             model="gpt-4o",
@@ -200,7 +212,7 @@ def query_whole_dataset(dataset, prompts, context, context_type):
             else:
                 edited_passage = ""
                 new_answer = ""
-                # raise Exception(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
+                print(f"Failed to strip the Edited passage and new answer from the output. The output = {output}")
         else:
             edited_passage = output
             new_answer = instance["alt_answer"]
@@ -325,18 +337,20 @@ if __name__ == "__main__":
     dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
     print("Length of raw dataset = ", len(dataset))
 
+    versionname = "full_v2"
+    pilot_run = True if "full" not in versionname else False
+
     if args.classified_path is not None:
         if args.classified_path == "x":
             dataset = load_from_disk(os.path.join(os.environ["data_dir"], "intermediate_processing", "classified_context", f"{model_name}.jsonl"))
         else:
             dataset = load_from_disk(args.classified_path)
     else:
-        dataset = classify_context(dataset)
+        dataset = classify_context(dataset, pilot_run=pilot_run)
     for context_type in ["HPCHPCE", "LPC"]:
-
         print(f"Creating edit prompts for {context_type}")
         # Create the prompt for edits
-        dataset, inputs, input_context = create_edit_prompts(dataset=dataset, model_name=model_name, context_type=context_type)
+        dataset, inputs, input_context = create_edit_prompts(dataset=dataset, model_name=model_name, context_type=context_type,  pilot_run=pilot_run)
 
         if args.use_batch:
             os.makedirs(os.path.join(os.environ["data_dir"], "intermediate_processing", context_type), exist_ok=True)
@@ -367,4 +381,4 @@ if __name__ == "__main__":
         dataset = map_back_to_dataset(classified_data = dataset, context_type = "LPC", openai_input_file_path=input_file_path, output_prediction_path=output_file_path)
 
     # Write to directory Save to jsonl
-    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_full.jsonl"))
+    dataset.to_json(os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_{versionname}.jsonl"))
