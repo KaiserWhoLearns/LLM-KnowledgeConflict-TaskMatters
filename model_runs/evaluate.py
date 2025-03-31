@@ -1,0 +1,175 @@
+import re
+import os
+import sys
+from openai import OpenAI
+from together import Together
+sys.path.append(os.getcwd())
+import argparse
+import string
+from collections import Counter
+from dotenv import load_dotenv
+from datasets import load_from_disk, load_dataset
+
+load_dotenv()
+
+# Load API keys from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY", "")
+together_client = Together(api_key=TOGETHER_API_KEY)
+
+def normalize_answer(s):
+    """Lower text and remove punctuation, articles and extra whitespace."""
+
+    def remove_articles(text):
+        return re.sub(r"\b(a|an|the)\b", " ", text)
+
+    def white_space_fix(text):
+        return " ".join(text.split())
+
+    def remove_punc(text):
+        exclude = set(string.punctuation)
+        return "".join(ch for ch in text if ch not in exclude)
+
+    def lower(text):
+        return text.lower()
+
+    return white_space_fix(remove_articles(remove_punc(lower(s))))
+
+def f1_score(prediction, ground_truth):
+    prediction_tokens = normalize_answer(prediction).split()
+    ground_truth_tokens = normalize_answer(ground_truth).split()
+    common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+    num_same = sum(common.values())
+    if num_same == 0:
+        return 0
+    precision = 1.0 * num_same / len(prediction_tokens)
+    recall = 1.0 * num_same / len(ground_truth_tokens)
+    f1 = (2 * precision * recall) / (precision + recall)
+    return f1
+
+def eval_kf_extraction(prediction, acceptable_answers):
+    """
+    # F1: for each prediction, take highest F1 with the set of possible answers
+    # EM: as long as one of the extracted answer is in the set of acceptable answers, EM=1
+    # FullEM: The model is able to extract all acceptable answer
+    """
+    # Strip for predicted answers
+    raw_preds = prediction.split(".")
+    preds = [normalize_answer(raw_pred) for raw_pred in raw_preds]
+    f1s = []
+    em = 0
+    fullem = 1 if len(preds) > 0 else 0
+    for pred in preds:
+        for ans in acceptable_answers:
+            # Compute F1
+            f1s.append(f1_score(prediction=pred, ground_truth=ans))
+        if pred in acceptable_answers:
+            em = 1
+        if pred not in acceptable_answers:
+            fullem = 0
+    return {"f1": max(f1s), "exact_match": em, "strict_exact_match": fullem}
+
+def eval_CK(prediction, answer, eval_model="openai"):
+    # Load the prompt from txt file
+    with open(os.path.join(os.environ["base_dir"], "prompts", "eval_ck.txt"), 'r', encoding='utf-8') as file:
+        prompt = file.read()
+    # Send OpenAI request
+    if eval_model == "openai":
+        completion = openai_client.chat.completions.create(
+                model="GPT-4o",
+                messages=[
+                    {"role": "developer", "content": prompt},
+                    {
+                        "role": "user",
+                        "content": f"###Response: {prediction}\n###Answer: {answer}"
+                    }
+                ]
+        )
+        response = completion.choices[0].message.content
+    else:
+        response = together_client.chat.completions.create(
+            model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+            messages=[{"role": "user", "content": prompt + f"###Response: {prediction}\n###Answer: {answer}"}],
+        ).choices[0].message.content
+        try:
+            response = response.split("</think>")[1]
+        except:
+            # Unjudgable instance, model does not think
+            return False
+    return 0 if "incorrect" in response else 1
+
+def eval_PK(prediction, answer1, answer2, eval_model="openai"):
+    # Load the prompt from txt file
+    with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pk.txt"), 'r', encoding='utf-8') as file:
+        prompt = file.read()
+    # Send OpenAI request
+    if eval_model == "openai":
+        completion = openai_client.chat.completions.create(
+                model="GPT-4o",
+                messages=[
+                    {"role": "developer", "content": prompt},
+                    {
+                        "role": "user",
+                        "content": f"###Response: {prediction}\n###Answer 1: {answer1}\n###Answer 2: {answer2}"
+                    }
+                ]
+        )
+        response = completion.choices[0].message.content
+    else:
+        response = together_client.chat.completions.create(
+            model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+            messages=[{"role": "user", "content": prompt + f"###Response: {prediction}\n###Answer 1: {answer1}\n###Answer 2: {answer2}"}],
+        ).choices[0].message.content
+        try:
+            response = response.split("</think>")[1]
+        except:
+            # Unjudgable instance, model does not think
+            return False
+    if "incorrect" in response:
+        return 0
+    elif "partially correct" in response:
+        return 0.5
+    return 1
+
+def evaluate_full(orig_path, dataset):
+    metrics = dict()
+    metrics = []
+    for instance in dataset:
+        if instance["task_type"] == "KFextract":
+            metrics.append(eval_kf_extraction(prediction=instance["pred"], acceptable_answers=instance["output"]))
+        elif instance["task_type"] == "PK":
+            # TODO: Need to specify answer1 and answer2 values
+            # TODO: May need to reformat the input data for PK task
+            eval_PK(prediction=instance["pred"], answer1="", answer2="", eval_model="openai")
+        elif instance["task_type"] == "CK":
+            metrics.append(eval_CK(prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
+        else:
+            raise Exception(f"The given task type ({instance['task_type']}) is not supported.")
+    dataset = dataset.add_column("metrics", metrics)
+    # Save
+    dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics", orig_path.split("/")[-1].split(".json")[0]))
+    if dataset[0]["task_type"] == "CK" or dataset[0]["task_type"] == "PK":
+        # Overall metrics preview
+        print("Overall Accuracy is: ", sum(metrics)/len(metrics))
+    # Output overall metrics
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    # Required positional argument
+    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+                            help='name of a dataset')
+    parser.add_argument('--task_type', type=str, default="PK",
+                            help='type of task. = PK, CK, KF')
+    parser.add_argument('--pred_path', type=str, default=None,
+                            help='load prediction from')
+    args = parser.parse_args()
+    model_name = args.test_model_name
+    
+    # Load the predictions
+    dataset = load_dataset("json", data_files=args.pred_path)["train"]
+
+    # Evalaute
+    evaluate_full(orig_path=args.pred_path, dataset=dataset)

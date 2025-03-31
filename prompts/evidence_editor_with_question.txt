@@ -1,9 +1,0 @@
-# This is for editing evidence where there is already a question
-
-You are a smart editor. You will be given a context and a question. Your job is to edit the context minimally so that the given question will have a different answer using the context, and the edited context should provide an alternate but inplausible answer to the question. Output only the edited sentence. For example, 
-Input: Context: Donald Trump is the president of the United States. Question: Who is the president of the United States? Output: The president of the United States is an ice cream.
-Input: Context: Scientists recently developed a flu vaccine. Question: What vaccine did scientists find? Output: Scientists recently developed a universal cancer vaccine.
-Input: Context: The most popular manga on Shonen Jump is One Piece. Question: What is the most popular manga on Shonen Jump?
-Output:
-
-GPT-4o: The most popular manga on Shonen Jump is a cookbook.
