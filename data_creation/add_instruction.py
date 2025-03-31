@@ -161,7 +161,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    version_name = "v5"
+    version_name = "full_v2"
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
 
     knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)

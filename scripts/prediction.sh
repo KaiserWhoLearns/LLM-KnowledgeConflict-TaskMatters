@@ -51,7 +51,7 @@ cd $base_dir
 
 python model_runs/predict.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_v4.jsonl \
+    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_full_v2.jsonl \
     --task_type $task_type
 
 EOT

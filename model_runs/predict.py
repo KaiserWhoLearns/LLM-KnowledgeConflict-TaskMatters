@@ -53,6 +53,8 @@ if __name__ == "__main__":
                             help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
                             help='save pred to')
+
+    data_version = "full_v2"
     
     args = parser.parse_args()
     model_name = args.test_model_name
@@ -66,19 +68,19 @@ if __name__ == "__main__":
         task_file_path = args.data_path
     else:
         if "KF" in args.task_type:
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_{args.task_type}.jsonl")
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_{args.task_type}_{data_version}.jsonl")
         elif args.task_type == "CK":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge.jsonl")
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge_{data_version}.jsonl")
         elif args.task_type == "PK":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge.jsonl")
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge_{data_version}.jsonl")
         else:
-            raise Exception("Undefined task type: " + args.task_type)
+            raise Exception("Undefined task type: " + args.task_type + " or data version: " + data_version)
     dataset = load_dataset("json", data_files=task_file_path)["train"]
 
     # run prediction
     pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100)
 
     if args.save_dir is None:
-        pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}.jsonl"))
+        pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
     else:
         pred_res.to_json(save_dir)
