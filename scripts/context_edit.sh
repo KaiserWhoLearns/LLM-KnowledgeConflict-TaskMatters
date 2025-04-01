@@ -45,13 +45,16 @@ cd $base_dir
 
 python data_creation/clas_edit_context.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --data_version "v6" \
     --use_batch
 
 python data_creation/remove_invalid_instances.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --data_version "v6"
 
 
 python data_creation/add_instruction.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]}
+    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --data_version "v6"
 
 EOT

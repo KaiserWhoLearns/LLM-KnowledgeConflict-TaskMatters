@@ -2,8 +2,9 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="mistralai/Mistral-7B-Instruct-v0.3"
-export task_type="KFextract"
+export model_name="meta-llama/Llama-3.2-3B-Instruct"
+export task_type="CK"
+export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
 TASK_TYPE_PRETTY["KFsummary"]="knowledge_free_summary"
@@ -51,12 +52,13 @@ cd $base_dir
 
 python model_runs/predict.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_full_v2.jsonl \
+    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
+    --data_version $data_version \
     --task_type $task_type
 
 python model_runs/evaluate.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_full_v2.jsonl \
+    --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}.jsonl \
     --task_type $task_type
 
 EOT

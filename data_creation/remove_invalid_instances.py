@@ -119,12 +119,13 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
+    parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
     parser.add_argument('--input_file_path', type=str, default=None,
                             help='File path to raw data output by clas_edit_context.py')
     args = parser.parse_args()
     model_name = args.test_model_name
 
-    version_name = "full_v2"
+    version_name = args.data_version
     if args.input_file_path is None:
         file_path = os.path.join(os.environ["data_dir"], "final_data", f"{model_name}_{version_name}.jsonl")
     else:

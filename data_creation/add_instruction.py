@@ -124,7 +124,7 @@ def contextual_knowledge_tasks(raw_dataset, version_name):
     """
     Create knowledge free tasks data
     """
-    system_prompt = "You are a question-answering system that strictly answers questions based only on the given passage. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the answer is not present in the passage, respond with 'The passage does not provide this information.'"
+    system_prompt = "You are a question-answering system that strictly answers questions based only on the given passage. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the passage cannot be used to answer the given question, respond with 'The passage does not provide this information.'"
     def create_ck_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_CK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
@@ -157,10 +157,11 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
+    parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset
-    version_name = "full_v2"
+    version_name = args.data_version
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
 
     knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)

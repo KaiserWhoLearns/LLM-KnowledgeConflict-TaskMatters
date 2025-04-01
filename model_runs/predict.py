@@ -53,8 +53,9 @@ if __name__ == "__main__":
                             help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
                             help='save pred to')
+    parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
 
-    data_version = "full_v2"
+    data_version = args.data_version
     
     args = parser.parse_args()
     model_name = args.test_model_name

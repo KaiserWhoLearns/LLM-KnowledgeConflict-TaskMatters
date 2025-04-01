@@ -326,6 +326,8 @@ if __name__ == "__main__":
                             help='name of a dataset')
     parser.add_argument('--use_batch', action="store_true",
                             help='whether to use the batching feature in OpenAI. Enable it could be slow.')
+    parser.add_argument('--data_version', type=str, default=None,
+                            help='The version of the dataset to be generated.')
     parser.add_argument('--classified_path', type=str, default=None,
                             help='the path to classified contexts. If it is not none, then we do not classify the context (into w/ and wo/ explanations) and will load from the given path. \n If "x" is passed, then it load the default classified contexts for each model (classified_context/model_name.jsonl).')
     args = parser.parse_args()
@@ -337,7 +339,7 @@ if __name__ == "__main__":
     dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
     print("Length of raw dataset = ", len(dataset))
 
-    versionname = "full_v2"
+    versionname = args.data_version
     pilot_run = True if "full" not in versionname else False
 
     if args.classified_path is not None:
