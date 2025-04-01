@@ -78,7 +78,7 @@ def eval_CK(prediction, answer, eval_model="openai"):
     # Send OpenAI request
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
-                model="GPT-4o",
+                model="gpt-4o",
                 messages=[
                     {"role": "developer", "content": prompt},
                     {
@@ -149,7 +149,7 @@ def evaluate_full(orig_path, dataset):
             raise Exception(f"The given task type ({instance['task_type']}) is not supported.")
     dataset = dataset.add_column("metrics", metrics)
     # Save
-    dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics", orig_path.split("/")[-1].split(".json")[0]))
+    dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
     if dataset[0]["task_type"] == "CK" or dataset[0]["task_type"] == "PK":
         # Overall metrics preview
         print("Overall Accuracy is: ", sum(metrics)/len(metrics))

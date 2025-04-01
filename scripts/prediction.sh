@@ -2,8 +2,8 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="meta-llama/Llama-3.2-3B-Instruct"
-export task_type="CK"
+export model_name="mistralai/Mistral-7B-Instruct-v0.3"
+export task_type="KFextract"
 
 declare -A TASK_TYPE_PRETTY
 TASK_TYPE_PRETTY["KFsummary"]="knowledge_free_summary"
