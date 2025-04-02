@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
-    parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
+    parser.add_argument('--data_version', type=str, default="full_v2", help='The version of the dataset to be generated.')
     args = parser.parse_args()
     data_version = args.data_version
     

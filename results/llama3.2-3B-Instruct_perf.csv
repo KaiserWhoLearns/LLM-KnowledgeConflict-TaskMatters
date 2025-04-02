@@ -1,6 +1,0 @@
-metric,NC,HPC,HPCE,LPC,Overall,task
-f1,0.7411854393,0.8091892108833333,0.8568919081624999,0.8397227101999999,0.8270760722407408,KFextract
-exact_match,0.0,0.0,0.0,0.0,0.0,KFextract
-strict_exact_match,0.0,0.0,0.0,0.0,0.0,KFextract
-,,,,,,CK
-,,,,,,PK
