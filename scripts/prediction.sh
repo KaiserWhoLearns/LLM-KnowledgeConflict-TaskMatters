@@ -2,9 +2,9 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="mistralai/Mistral-7B-Instruct-v0.3"
+export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
 export task_type="KFextract"
-export data_version="v6"
+export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
 TASK_TYPE_PRETTY["KFsummary"]="knowledge_free_summary"

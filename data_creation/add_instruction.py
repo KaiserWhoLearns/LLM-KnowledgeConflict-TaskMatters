@@ -137,10 +137,8 @@ def contextual_knowledge_tasks(raw_dataset, version_name):
     return processed_dataset
 
 def parametric_knowledge_tasks(raw_dataset, version_name):
-    # TODO: What is the best way for this task? Should we allow the model to combine? Should we pass both contexts?
-    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You can combine your own knowledge along with the knowledge provided by the source. However, the provided source is not always reliable."
-    # v0-potential to try
-    # "Follow these rules: 1. If the context aligns with your knowledge, use it to support your answer. 2. If the context contradicts your knowledge, ignore the given context that appears unreliable and provide a corrected answer. 3. If the context provides additional details but does not contradict your knowledge, integrate both sources. 4. If you do not know the answer, state 'I do not have enough information to answer this confidently.'"
+    system_prompt = "You are a knowledgeable question-answering system. You should ignore the passage given in the context and purly answer the question based on your own knowldge. You will be provided a context that you should ignore and your question, your job is to do your best to answer the question, follow your belief. You can provide justification if needed."
+
     def create_pk_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_PK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
@@ -150,6 +148,20 @@ def parametric_knowledge_tasks(raw_dataset, version_name):
     # Write to local
     os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
     processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge_{version_name}.jsonl"))
+    return processed_dataset
+
+def parametriccontextual_knowledge_tasks(raw_dataset, version_name):
+    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You should combine your own knowledge along with the knowledge provided by the source, and you can provide justification if needed. Note that the provided source is not always reliable. If multiple answer exists, you should give both answer and discuss the reason for it. If you believe that you cannot answer the question from neither the given passage nor your own knowledge, you can say 'I don't know'."
+
+    def create_pck_instance(example):
+        for context_type in CONTEXT_TYPES:
+            example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+            example[f"{context_type}_PCK_output"] =  example[f"{context_type}_answer"]
+        return example
+    processed_dataset = raw_dataset.map(create_pck_instance)
+    # Write to local
+    os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametriccontextual_knowledge_{version_name}.jsonl"))
     return processed_dataset
 
 if __name__ == "__main__":
@@ -167,3 +179,4 @@ if __name__ == "__main__":
     knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
     contextual_knowledge_tasks(raw_dataset, version_name=version_name)
     parametric_knowledge_tasks(raw_dataset, version_name=version_name)
+    parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
