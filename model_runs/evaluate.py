@@ -100,19 +100,20 @@ def eval_CK(prediction, answer, eval_model="openai"):
             return False
     return 0 if "incorrect" in response else 1
 
-def eval_PK(prediction, answer1, answer2, eval_model="openai"):
+def eval_PK(prediction, answer, eval_model="openai"):
     # Load the prompt from txt file
+    # TODO: Rewrite the prompt
     with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pk.txt"), 'r', encoding='utf-8') as file:
         prompt = file.read()
     # Send OpenAI request
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
-                model="GPT-4o",
+                model="gpt-4o",
                 messages=[
                     {"role": "developer", "content": prompt},
                     {
                         "role": "user",
-                        "content": f"###Response: {prediction}\n###Answer 1: {answer1}\n###Answer 2: {answer2}"
+                        "content": f"###Response: {prediction}\n###Answer: {answer}\n"
                     }
                 ]
         )
@@ -120,7 +121,40 @@ def eval_PK(prediction, answer1, answer2, eval_model="openai"):
     else:
         response = together_client.chat.completions.create(
             model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
-            messages=[{"role": "user", "content": prompt + f"###Response: {prediction}\n###Answer 1: {answer1}\n###Answer 2: {answer2}"}],
+            messages=[{"role": "user", "content": prompt + f"###Response: {prediction}\n###Answer: {answer}\n"}],
+        ).choices[0].message.content
+        try:
+            response = response.split("</think>")[1]
+        except:
+            # Unjudgable instance, model does not think
+            return False
+    if "incorrect" in response:
+        return 0
+    return 1
+
+def eval_PCK(prediction, answer, eval_model="openai"):
+    # Load the prompt from txt file
+    # TODO: Rewrite the input format
+    with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pck.txt"), 'r', encoding='utf-8') as file:
+        prompt = file.read()
+    # Send OpenAI request
+    content = f"###Response: {prediction}\n###Answer: {answer}"
+    if eval_model == "openai":
+        completion = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "developer", "content": prompt},
+                    {
+                        "role": "user",
+                        "content": content
+                    }
+                ]
+        )
+        response = completion.choices[0].message.content
+    else:
+        response = together_client.chat.completions.create(
+            model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+            messages=[{"role": "user", "content": prompt + content}],
         ).choices[0].message.content
         try:
             response = response.split("</think>")[1]
@@ -140,11 +174,11 @@ def evaluate_full(orig_path, dataset):
         if instance["task_type"] == "KFextract":
             metrics.append(eval_kf_extraction(prediction=instance["pred"], acceptable_answers=instance["output"]))
         elif instance["task_type"] == "PK":
-            # TODO: Need to specify answer1 and answer2 values
-            # TODO: May need to reformat the input data for PK task
-            eval_PK(prediction=instance["pred"], answer1="", answer2="", eval_model="openai")
+            metrics.append(eval_PK(prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
         elif instance["task_type"] == "CK":
             metrics.append(eval_CK(prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
+        elif instance["task_type"] == "PCK":
+            metrics.append(eval_PCK(prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
         else:
             raise Exception(f"The given task type ({instance['task_type']}) is not supported.")
     dataset = dataset.add_column("metrics", metrics)

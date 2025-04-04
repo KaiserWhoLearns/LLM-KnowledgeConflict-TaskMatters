@@ -142,7 +142,8 @@ def parametric_knowledge_tasks(raw_dataset, version_name):
     def create_pk_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_PK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
-            example[f"{context_type}_PK_output"] =  example[f"{context_type}_answer"]
+            # When asked to only consider parametric knowledge, the model should only output parametric knowledge
+            example[f"{context_type}_PK_output"] =  example[f"NC_answer"]
         return example
     processed_dataset = raw_dataset.map(create_pk_instance)
     # Write to local
@@ -155,8 +156,13 @@ def parametriccontextual_knowledge_tasks(raw_dataset, version_name):
 
     def create_pck_instance(example):
         for context_type in CONTEXT_TYPES:
-            example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
-            example[f"{context_type}_PCK_output"] =  example[f"{context_type}_answer"]
+            if context_type != "NC":
+                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+                example[f"{context_type}_PCK_output"] =  "Answer 1: " + example[f"{context_type}_answer"] + "Answer 2: " + example["NC_answer"]
+            else:
+                # If only NC answer is provided, the model is expected to only output the NC answer
+                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+                example[f"{context_type}_PCK_output"] =  "Answer 1: " + example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_pck_instance)
     # Write to local
@@ -176,7 +182,7 @@ if __name__ == "__main__":
     version_name = args.data_version
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
 
-    knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
-    contextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    # knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
+    # contextual_knowledge_tasks(raw_dataset, version_name=version_name)
     parametric_knowledge_tasks(raw_dataset, version_name=version_name)
     parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)

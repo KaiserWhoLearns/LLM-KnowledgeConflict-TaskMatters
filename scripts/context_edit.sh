@@ -44,14 +44,14 @@ conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
 
-python data_creation/clas_edit_context.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version \
-    --use_batch
+# python data_creation/clas_edit_context.py \
+#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+#     --data_version $data_version \
+#     --use_batch
 
-python data_creation/remove_invalid_instances.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
+# python data_creation/remove_invalid_instances.py \
+#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+#     --data_version $data_version
 
 
 python data_creation/add_instruction.py \

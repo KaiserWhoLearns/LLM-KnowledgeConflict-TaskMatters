@@ -2,13 +2,14 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
-export task_type="KFextract"
+export model_name="meta-llama/Llama-3.2-3B-Instruct"
+export task_type="PK"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
 TASK_TYPE_PRETTY["KFsummary"]="knowledge_free_summary"
 TASK_TYPE_PRETTY["KFextract"]="knowledge_free_extract"
+TASK_TYPE_PRETTY["PCK"]="parametriccontextual_knowledge"
 TASK_TYPE_PRETTY["CK"]="contextual_knowledge"
 TASK_TYPE_PRETTY["PK"]="parametric_knowledge"
 declare -A MODEL_NAME_TO_PRETTY 
@@ -17,7 +18,7 @@ MODEL_NAME_TO_PRETTY["mistralai/Mistral-7B-Instruct-v0.3"]="mistral7B"
 MODEL_NAME_TO_PRETTY["Qwen/Qwen2.5-7B-Instruct-1M"]="qwen7B-instruct"
 MODEL_NAME_TO_PRETTY["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]="deepseek-llama8b" 
 
-export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-pred"
+export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-pred-${task_type}"
 echo "Running $exp_name"
 
 export BNB_CUDA_VERSION=118
@@ -50,11 +51,11 @@ conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
 
-python model_runs/predict.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
-    --data_version $data_version \
-    --task_type $task_type
+# python model_runs/predict.py \
+#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+#     --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
+#     --data_version $data_version \
+#     --task_type $task_type
 
 python model_runs/evaluate.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \

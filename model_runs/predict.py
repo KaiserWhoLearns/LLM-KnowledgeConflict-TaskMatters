@@ -48,16 +48,15 @@ if __name__ == "__main__":
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
     parser.add_argument('--task_type', type=str, default="PK",
-                            help='type of task. = PK, CK, KF')
+                            help='type of task. = PK, CK, PCK, KF')
     parser.add_argument('--data_path', type=str, default=None,
                             help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
                             help='save pred to')
     parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
-
-    data_version = args.data_version
     
     args = parser.parse_args()
+    data_version = args.data_version
     model_name = args.test_model_name
     model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
     tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
@@ -74,6 +73,8 @@ if __name__ == "__main__":
             task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge_{data_version}.jsonl")
         elif args.task_type == "PK":
             task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge_{data_version}.jsonl")
+        elif args.task_type == "PCK":
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametriccontextual_knowledge_{data_version}.jsonl")
         else:
             raise Exception("Undefined task type: " + args.task_type + " or data version: " + data_version)
     dataset = load_dataset("json", data_files=task_file_path)["train"]
