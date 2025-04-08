@@ -2,7 +2,7 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="meta-llama/Llama-3.2-3B-Instruct"
+export model_name="mistralai/Mistral-7B-Instruct-v0.3"
 export task_type="PK"
 export data_version="full_v2"
 
@@ -44,18 +44,18 @@ sbatch <<EOT
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
 #SBATCH --error=${base_dir}/logs/error_${exp_name}.log
 
-module load anaconda3/2022.05
+module load anaconda3
 module load cuda/11.8.0
 module load git-lfs
 conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
 
-# python model_runs/predict.py \
-#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-#     --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
-#     --data_version $data_version \
-#     --task_type $task_type
+python model_runs/predict.py \
+    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
+    --data_version $data_version \
+    --task_type $task_type
 
 python model_runs/evaluate.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \

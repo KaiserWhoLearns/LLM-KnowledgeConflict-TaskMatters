@@ -58,7 +58,7 @@ def create_acc_table(test_model_name, data_version=""):
      """
     # For each task (KF, CK, PK), generate row
     tab =[]
-    for task_type in ["KFextract", "CK", "PK"]:
+    for task_type in ["KFextract", "CK", "PK", "PCK"]:
         if "KF" in task_type:
             target_metrics = ["f1", "exact_match", "strict_exact_match"]
         else:

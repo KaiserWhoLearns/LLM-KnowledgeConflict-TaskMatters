@@ -2,9 +2,10 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
+export model_name="meta-llama/Llama-4-Scout-17B-16E-Instruct"
 
 declare -A MODEL_NAME_TO_PRETTY 
+MODEL_NAME_TO_PRETTY["meta-llama/Llama-4-Scout-17B-16E-Instruct"]="llama4-17B"
 MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.2-3B-Instruct"]="llama3.2-3B-Instruct"
 MODEL_NAME_TO_PRETTY["mistralai/Mistral-7B-Instruct-v0.3"]="mistral7B"
 MODEL_NAME_TO_PRETTY["Qwen/Qwen2.5-7B-Instruct-1M"]="qwen7B-instruct"
@@ -30,7 +31,7 @@ sbatch <<EOT
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --gpus=1
-#SBATCH --time=0-15:00:00 # Max runtime in DD-HH:MM:SS format.
+#SBATCH --time=0-24:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
