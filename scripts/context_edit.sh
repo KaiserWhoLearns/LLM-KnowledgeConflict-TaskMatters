@@ -25,8 +25,8 @@ sbatch <<EOT
 #SBATCH --job-name=$exp_name
 #SBATCH --mail-user=hsun74@jhu.edu
 #SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
+#SBATCH --partition=a100
+#SBATCH -A mdredze1_gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G

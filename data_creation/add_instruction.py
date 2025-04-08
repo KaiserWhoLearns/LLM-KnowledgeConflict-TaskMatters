@@ -7,7 +7,7 @@ from openai import OpenAI
 sys.path.append(os.getcwd())
 import argparse
 from dotenv import load_dotenv
-from datasets import load_from_disk, load_dataset
+from datasets import load_dataset
 
 from remove_invalid_instances import is_valid
 load_dotenv()
