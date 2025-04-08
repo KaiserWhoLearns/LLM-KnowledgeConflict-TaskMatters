@@ -170,6 +170,29 @@ def parametriccontextual_knowledge_tasks(raw_dataset, version_name):
     processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametriccontextual_knowledge_{version_name}.jsonl"))
     return processed_dataset
 
+def rag_task(raw_dataset, version_name):
+    """
+    Format simulating regular RAG setting, feed in all passages and ask the model to give all answers
+    The prompt is obtained from wikicontradict
+    """
+    system_prompt = "Provide a short answer for the following question based on the given context. Carefully investigate the given context and provide a concise response that reflects the comprehensive view of the context, even if the answer contains contradictory information reflecting the heterogeneous nature of the context. "
+
+    def create_rag_instance(example):
+        for context_type in CONTEXT_TYPES:
+            if context_type != "NC":
+                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + '+' + example["NC_context"] + "\nAnswer: "
+                example[f"{context_type}_RAG_output"] =  "Answer 1: " + example[f"{context_type}_answer"] + "Answer 2: " + example["NC_answer"]
+            else:
+                # If only NC answer is provided, the model is expected to only output the NC answer
+                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
+                example[f"{context_type}_RAG_output"] =  "Answer 1: " + example[f"{context_type}_answer"]
+        return example
+    processed_dataset = raw_dataset.map(create_rag_instance)
+    # Write to local
+    os.makedirs(os.path.join(os.path.join(os.environ["data_dir"], "task_data")), exist_ok=True)
+    processed_dataset.to_json(os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_rag_{version_name}.jsonl"))
+    return processed_dataset
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required positional argument
@@ -184,5 +207,6 @@ if __name__ == "__main__":
 
     # knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
     # contextual_knowledge_tasks(raw_dataset, version_name=version_name)
-    parametric_knowledge_tasks(raw_dataset, version_name=version_name)
-    parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    # parametric_knowledge_tasks(raw_dataset, version_name=version_name)
+    # parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    rag_task(raw_dataset, version_name=version_name)

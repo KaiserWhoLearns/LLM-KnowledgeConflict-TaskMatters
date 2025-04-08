@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
     parser.add_argument('--task_type', type=str, default="PK",
-                            help='type of task. = PK, CK, PCK, KF')
+                            help='type of task. = PK, CK, PCK, KF, RAG')
     parser.add_argument('--data_path', type=str, default=None,
                             help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
@@ -75,6 +75,8 @@ if __name__ == "__main__":
             task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge_{data_version}.jsonl")
         elif args.task_type == "PCK":
             task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametriccontextual_knowledge_{data_version}.jsonl")
+        elif args.task_type == "RAG":
+            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_rag_{data_version}.jsonl")
         else:
             raise Exception("Undefined task type: " + args.task_type + " or data version: " + data_version)
     dataset = load_dataset("json", data_files=task_file_path)["train"]
@@ -85,4 +87,4 @@ if __name__ == "__main__":
     if args.save_dir is None:
         pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
     else:
-        pred_res.to_json(save_dir)
+        pred_res.to_json(args.save_dir)
