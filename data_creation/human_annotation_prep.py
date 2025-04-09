@@ -8,7 +8,28 @@ sys.path.append(os.getcwd())
 from dotenv import load_dotenv
 load_dotenv()
 
-if __name__ == "__main__":
+def sample_for_MBE_agreement():
+    """
+    For PK, PCK, CK, RAG, sample 10 examples each for agreement analysis
+    """
+    for task in ["CK", "PK", "PCK", "RAG"]:
+        # Load the metric json
+        jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
+        dataset = load_dataset("json", data_files=jsonl_path, split="train")
+        sampled_dataset = dataset.shuffle(seed=42).select(range(10))
+
+        # Convert to a pandas DataFrame
+        df = pd.DataFrame(sampled_dataset)
+
+        # Ensure output directory exists
+        output_dir = os.path.join(os.environ["base_dir"], "output", "annotation", "eval_agreement")
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Write data
+        output_path = os.path.join(output_dir, f"{task}.csv")
+        df.to_csv(output_path, index=False)
+
+def sample_for_evidence_annotation():
     # Path to your .jsonl file
     jsonl_path = os.path.join(os.environ["data_dir"], "final_data_filtered", "llama3.2-3B-Instruct_full_v2.jsonl")
     # "path/to/your/data.jsonl"
@@ -38,3 +59,9 @@ if __name__ == "__main__":
     df.to_csv(output_path, index=False)
 
     print(f"Saved 50 samples to {output_path}")
+
+        
+
+if __name__ == "__main__":
+    sample_for_MBE_agreement()
+    # sample_for_evidence_annotation()
