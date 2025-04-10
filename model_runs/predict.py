@@ -49,6 +49,8 @@ if __name__ == "__main__":
                             help='name of a dataset')
     parser.add_argument('--task_type', type=str, default="PK",
                             help='type of task. = PK, CK, PCK, KF, RAG')
+    parser.add_argument('--pilot_run', action="store_true",
+                            help='whether this is a pilot run. When set to true, we only make prediction for 10 insances.')
     parser.add_argument('--data_path', type=str, default=None,
                             help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
@@ -81,10 +83,16 @@ if __name__ == "__main__":
             raise Exception("Undefined task type: " + args.task_type + " or data version: " + data_version)
     dataset = load_dataset("json", data_files=task_file_path)["train"]
 
+    if args.pilot_run:
+        dataset = dataset.shuffle(seed=42).select(range(10))
+
     # run prediction
-    pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100)
+    pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=200)
 
     if args.save_dir is None:
-        pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
+        if args.pilot_run:
+            pred_res.to_json(os.path.join(os.environ["base_dir"], "output", "pilotruns", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
+        else:
+            pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
     else:
         pred_res.to_json(args.save_dir)

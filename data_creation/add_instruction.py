@@ -181,11 +181,11 @@ def rag_task(raw_dataset, version_name):
         for context_type in CONTEXT_TYPES:
             if context_type != "NC":
                 example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + '+' + example["NC_context"] + "\nAnswer: "
-                example[f"{context_type}_RAG_output"] =  "Answer 1: " + example[f"{context_type}_answer"] + "Answer 2: " + example["NC_answer"]
+                example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"] + " | " + example["NC_answer"]
             else:
                 # If only NC answer is provided, the model is expected to only output the NC answer
                 example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
-                example[f"{context_type}_RAG_output"] =  "Answer 1: " + example[f"{context_type}_answer"]
+                example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_rag_instance)
     # Write to local

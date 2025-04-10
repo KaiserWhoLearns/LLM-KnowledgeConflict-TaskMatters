@@ -12,7 +12,8 @@ def sample_for_MBE_agreement():
     """
     For PK, PCK, CK, RAG, sample 10 examples each for agreement analysis
     """
-    for task in ["CK", "PK", "PCK", "RAG"]:
+    # for task in ["CK", "PK", "PCK", "RAG"]:
+    for task in ["RAG"]:
         # Load the metric json
         jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
         dataset = load_dataset("json", data_files=jsonl_path, split="train")
@@ -26,7 +27,7 @@ def sample_for_MBE_agreement():
         os.makedirs(output_dir, exist_ok=True)
 
         # Write data
-        output_path = os.path.join(output_dir, f"{task}.csv")
+        output_path = os.path.join(output_dir, f"{task}_wiki.csv")
         df.to_csv(output_path, index=False)
 
 def sample_for_evidence_annotation():

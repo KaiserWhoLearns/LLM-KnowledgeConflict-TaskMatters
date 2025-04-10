@@ -31,7 +31,7 @@ sbatch <<EOT
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --gpus=1
-#SBATCH --time=0-24:00:00 # Max runtime in DD-HH:MM:SS format.
+#SBATCH --time=2-24:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
