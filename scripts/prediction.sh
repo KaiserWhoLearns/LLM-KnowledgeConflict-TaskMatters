@@ -47,7 +47,6 @@ sbatch <<EOT
 
 module load anaconda3
 module load cuda/11.8.0
-module load git-lfs
 conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
@@ -57,6 +56,12 @@ python model_runs/predict.py \
     --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
     --data_version $data_version \
     --task_type $task_type
+    # --pilot_run \
+
+# python model_runs/evaluate.py \
+#     --test_model_name "llama3.2-3B-Instruct" \
+#     --pred_path ${base_dir}/output/pilotruns/"llama3.2-3B-Instruct"_${task_type}_${data_version}.jsonl \
+#     --task_type $task_type
 
 python model_runs/evaluate.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \

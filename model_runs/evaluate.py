@@ -1,6 +1,7 @@
 import re
 import os
 import sys
+import pdb
 from openai import OpenAI
 from together import Together
 sys.path.append(os.getcwd())
@@ -99,6 +100,7 @@ def eval_CK(question, prediction, answer, eval_model="openai"):
         except:
             # Unjudgable instance, model does not think
             return False
+    # pdb.set_trace()
     return 0 if "incorrect" in response.lower() else 1
 
 def eval_PK(question, prediction, answer, eval_model="openai"):
@@ -131,6 +133,7 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
         except:
             # Unjudgable instance, model does not think
             return False
+    # pdb.set_trace()
     if "incorrect" in response.lower():
         return 0
     return 1
@@ -168,6 +171,7 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
         except:
             # Unjudgable instance, model does not think
             return False
+    # pdb.set_trace()
     if "incorrect" in response.lower():
         return 0
     elif "partially correct" in response.lower():
@@ -177,10 +181,15 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
 def evaluate_full(orig_path, dataset):
     metrics = dict()
     metrics = []
-    extract_question_text = lambda text: text.rsplit("Question: ", 1)[-1].split("\nAnswer:  ", 1)[0].strip() if "Question: " in text and "\nAnswer:  " in text else None
+    questions = []
+    extract_question_text = lambda text: text.rsplit("Question: ", 1)[-1].split("\nContext: ", 1)[0].strip() if "Question: " in text and "\nAnswer: " in text else None
 
     for instance in dataset:
         question = extract_question_text(instance["input"])
+        questions.append(question)
+        if question is None:
+            print("Error: No question is contained in this example. Input = ", instance["input"])
+        # pdb.set_trace()
         if instance["task_type"] == "KFextract":
             metrics.append(eval_kf_extraction(prediction=instance["pred"], acceptable_answers=instance["output"]))
         elif instance["task_type"] == "PK":
@@ -192,11 +201,13 @@ def evaluate_full(orig_path, dataset):
         else:
             raise Exception(f"The given task type ({instance['task_type']}) is not supported.")
     dataset = dataset.add_column("metrics", metrics)
+    dataset = dataset.add_column("question", questions)
     # Save
-    dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
-    if dataset[0]["task_type"] == "CK" or dataset[0]["task_type"] == "PK":
-        # Overall metrics preview
-        print("Overall Accuracy is: ", sum(metrics)/len(metrics))
+    if "pilot" not in orig_path:
+        dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics_wq", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
+        if dataset[0]["task_type"] == "CK" or dataset[0]["task_type"] == "PK":
+            # Overall metrics preview
+            print("Overall Accuracy is: ", sum(metrics)/len(metrics))
     # Output overall metrics
 
 
@@ -214,6 +225,8 @@ if __name__ == "__main__":
     
     # Load the predictions
     dataset = load_dataset("json", data_files=args.pred_path)["train"]
+    # Sample for 10 instances
+    dataset = dataset.shuffle(seed=42).select(range(10))
 
     # Evalaute
     evaluate_full(orig_path=args.pred_path, dataset=dataset)

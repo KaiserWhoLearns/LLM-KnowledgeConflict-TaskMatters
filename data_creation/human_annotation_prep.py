@@ -15,7 +15,7 @@ def sample_for_MBE_agreement():
     # for task in ["CK", "PK", "PCK", "RAG"]:
     for task in ["RAG"]:
         # Load the metric json
-        jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
+        jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics_wq", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
         dataset = load_dataset("json", data_files=jsonl_path, split="train")
         sampled_dataset = dataset.shuffle(seed=42).select(range(10))
 

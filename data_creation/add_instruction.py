@@ -175,16 +175,16 @@ def rag_task(raw_dataset, version_name):
     Format simulating regular RAG setting, feed in all passages and ask the model to give all answers
     The prompt is obtained from wikicontradict
     """
-    system_prompt = "Provide a short answer for the following question based on the given context. Carefully investigate the given context and provide a concise response that reflects the comprehensive view of the context, even if the answer contains contradictory information reflecting the heterogeneous nature of the context. "
+    system_prompt = "Provide a short answer for the following question based on the given contexts. Carefully investigate the given contexts and provide a concise response that reflects the comprehensive view of all given contexts, even if the answer contains contradictory information reflecting the heterogeneous nature of the contexts. "
 
     def create_rag_instance(example):
         for context_type in CONTEXT_TYPES:
             if context_type != "NC":
-                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + '+' + example["NC_context"] + "\nAnswer: "
+                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext 1: " + example[f"{context_type}_context"] + '\n Context 2: ' + example["NC_context"] + "\nAnswer: "
                 example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"] + " | " + example["NC_answer"]
             else:
                 # If only NC answer is provided, the model is expected to only output the NC answer
-                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
+                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext 1: " + example[f"{context_type}_context"] + "\nAnswer: "
                 example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_rag_instance)
@@ -205,8 +205,10 @@ if __name__ == "__main__":
     version_name = args.data_version
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
 
+    # Sample for 10 instances
+    raw_dataset = raw_dataset.shuffle(seed=42).select(range(10))
     # knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
     # contextual_knowledge_tasks(raw_dataset, version_name=version_name)
-    # parametric_knowledge_tasks(raw_dataset, version_name=version_name)
-    # parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    # # parametric_knowledge_tasks(raw_dataset, version_name=version_name)
+    # # parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
     rag_task(raw_dataset, version_name=version_name)
