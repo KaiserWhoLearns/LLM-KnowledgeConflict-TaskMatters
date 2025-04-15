@@ -80,7 +80,7 @@ def eval_CK(question, prediction, answer, eval_model="openai"):
     # Send OpenAI request
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4-1106-preview",
                 messages=[
                     {"role": "developer", "content": prompt},
                     {
@@ -100,8 +100,8 @@ def eval_CK(question, prediction, answer, eval_model="openai"):
         except:
             # Unjudgable instance, model does not think
             return False
-    # pdb.set_trace()
-    return 0 if "incorrect" in response.lower() else 1
+    # TODO: Save full response
+    return {"score": 0, "response": response} if "incorrect" in response.lower() else {"score": 1, "response": response}
 
 def eval_PK(question, prediction, answer, eval_model="openai"):
     # Load the prompt from txt file
@@ -113,7 +113,7 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
     # Send OpenAI request
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4-1106-preview",
                 messages=[
                     {"role": "developer", "content": prompt},
                     {
@@ -135,8 +135,8 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
             return False
     # pdb.set_trace()
     if "incorrect" in response.lower():
-        return 0
-    return 1
+        return {"score": 0, "response": response}
+    return {"score": 1, "response": response}
 
 def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PCK"):
     # Load the prompt from txt file
@@ -148,10 +148,10 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
         with open(os.path.join(os.environ["base_dir"], "prompts", "eval_rag.txt"), 'r', encoding='utf-8') as file:
             prompt = file.read()
     # Send OpenAI request
-    content = f"###Question: {question}\n###Response: {prediction}\n###Answer: {answer}"
+    content = f"###Question: {question}\n###Response: {prediction}\n###Answer: {answer} + \n###Comment: "
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4-1106-preview",
                 messages=[
                     {"role": "developer", "content": prompt},
                     {
@@ -173,16 +173,16 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
             return False
     # pdb.set_trace()
     if "incorrect" in response.lower():
-        return 0
+        return {"score": 0, "response": response}
     elif "partially correct" in response.lower():
-        return 0.5
-    return 1
+        return {"score": 0.5, "response": response}
+    return {"score": 1, "response": response}
 
 def evaluate_full(orig_path, dataset):
     metrics = dict()
     metrics = []
     questions = []
-    extract_question_text = lambda text: text.rsplit("Question: ", 1)[-1].split("\nContext: ", 1)[0].strip() if "Question: " in text and "\nAnswer: " in text else None
+    extract_question_text = lambda text: text.rsplit("Question: ", 1)[-1].split("\nContext", 1)[0].strip() if "Question: " in text and "\nAnswer: " in text else None
 
     for instance in dataset:
         question = extract_question_text(instance["input"])

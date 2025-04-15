@@ -36,15 +36,10 @@ def create_acc_row(test_model_name, task_type, data_version="", target_metric=No
     for evidence_type in ["NC", "HPC", "HPCE", "LPC"]:
         for instance in dataset:
             if instance["context_type"] == evidence_type:
-                if "KF" in task_type:
-                    # Load from dict
-                    if target_metric is None or target_metric == "f1":
-                        metrics.append(instance["metrics"]["f1"])
-                    else:
-                        metrics.append(instance["metrics"][target_metric])
+                if target_metric is None or target_metric == "f1":
+                    metrics.append(instance["metrics"]["f1"])
                 else:
-                    # Add number
-                    metrics.append(instance["metrics"])
+                    metrics.append(instance["metrics"][target_metric])
         # Add to row
         row[evidence_type] = sum(metrics) / len(metrics) * 100
         overall_metrics += metrics
@@ -62,7 +57,7 @@ def create_acc_table(test_model_name, data_version=""):
         if "KF" in task_type:
             target_metrics = ["f1", "exact_match", "strict_exact_match"]
         else:
-            target_metrics = [None]
+            target_metrics = ["score"]
         for target_metric in target_metrics:
             row = create_acc_row(test_model_name, task_type, data_version=data_version, target_metric=target_metric)
             row["task"] = task_type
