@@ -135,8 +135,8 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
             return False
     # pdb.set_trace()
     if "incorrect" in response.lower():
-        return {"score": 0, "response": response}
-    return {"score": 1, "response": response}
+        return {"score": 0, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
+    return {"score": 1, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
 
 def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PCK"):
     # RAG PCK Share the same evaluator
@@ -171,13 +171,13 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
             response = response.split("</think>")[1]
         except:
             # Unjudgable instance, model does not think
-            return False
+            return None
     # pdb.set_trace()
     if "incorrect" in response.lower():
-        return {"score": 0, "response": response}
+        return {"score": 0, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
     elif "partially correct" in response.lower():
-        return {"score": 0.5, "response": response}
-    return {"score": 1, "response": response}
+        return {"score": 0.5, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
+    return {"score": 1, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
 
 def evaluate_full(orig_path, dataset):
     metrics = dict()
