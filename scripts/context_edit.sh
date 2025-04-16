@@ -37,7 +37,7 @@ sbatch <<EOT
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
 #SBATCH --error=${base_dir}/logs/error_${exp_name}.log
 
-module load anaconda3/2022.05
+module load anaconda3
 module load cuda/11.8.0
 module load git-lfs
 conda activate /scratch4/mdredze1/hsun74/conda_env/kc

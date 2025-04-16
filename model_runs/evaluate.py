@@ -222,8 +222,8 @@ if __name__ == "__main__":
     
     # Load the predictions
     dataset = load_dataset("json", data_files=args.pred_path)["train"]
-    # Sample for 10 instances
-    dataset = dataset.shuffle(seed=42).select(range(10))
+    # # Sample for 10 instances
+    # dataset = dataset.shuffle(seed=42).select(range(10))
 
     # Evalaute
     evaluate_full(orig_path=args.pred_path, dataset=dataset)

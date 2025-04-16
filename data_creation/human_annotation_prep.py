@@ -12,8 +12,8 @@ def sample_for_MBE_agreement():
     """
     For PK, PCK, CK, RAG, sample 10 examples each for agreement analysis
     """
-    # for task in ["CK", "PK", "PCK", "RAG"]:
-    for task in ["RAG"]:
+    for task in ["CK", "PK", "PCK", "RAG"]:
+    # for task in ["RAG"]:
         # Load the metric json
         jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics_wq", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
         dataset = load_dataset("json", data_files=jsonl_path, split="train")
