@@ -72,40 +72,40 @@ def eval_kf_extraction(prediction, acceptable_answers):
             fullem = 0
     return {"f1": max(f1s), "exact_match": em, "strict_exact_match": fullem}
 
-def eval_CK(question, prediction, answer, eval_model="openai"):
-    # Load the prompt from txt file
-    with open(os.path.join(os.environ["base_dir"], "prompts", "eval_ck.txt"), 'r', encoding='utf-8') as file:
-        prompt = file.read()
-    content = f"###Question: {question}\n###Response: {prediction}\n###Answer: {answer}"
-    # Send OpenAI request
-    if eval_model == "openai":
-        completion = openai_client.chat.completions.create(
-                model="gpt-4-1106-preview",
-                messages=[
-                    {"role": "developer", "content": prompt},
-                    {
-                        "role": "user",
-                        "content": content
-                    }
-                ]
-        )
-        response = completion.choices[0].message.content
-    else:
-        response = together_client.chat.completions.create(
-            model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
-            messages=[{"role": "user", "content": prompt + content}],
-        ).choices[0].message.content
-        try:
-            response = response.split("</think>")[1]
-        except:
-            # Unjudgable instance, model does not think
-            return False
-    # TODO: Save full response
-    return {"score": 0, "response": response} if "incorrect" in response.lower() else {"score": 1, "response": response}
+# def eval_CK(question, prediction, answer, eval_model="openai"):
+#     # Load the prompt from txt file
+#     with open(os.path.join(os.environ["base_dir"], "prompts", "eval_ck.txt"), 'r', encoding='utf-8') as file:
+#         prompt = file.read()
+#     content = f"###Question: {question}\n###Response: {prediction}\n###Answer: {answer}"
+#     # Send OpenAI request
+#     if eval_model == "openai":
+#         completion = openai_client.chat.completions.create(
+#                 model="gpt-4-1106-preview",
+#                 messages=[
+#                     {"role": "developer", "content": prompt},
+#                     {
+#                         "role": "user",
+#                         "content": content
+#                     }
+#                 ]
+#         )
+#         response = completion.choices[0].message.content
+#     else:
+#         response = together_client.chat.completions.create(
+#             model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+#             messages=[{"role": "user", "content": prompt + content}],
+#         ).choices[0].message.content
+#         try:
+#             response = response.split("</think>")[1]
+#         except:
+#             # Unjudgable instance, model does not think
+#             return False
+#     # TODO: Save full response
+#     return {"score": 0, "response": response} if "incorrect" in response.lower() else {"score": 1, "response": response}
 
 def eval_PK(question, prediction, answer, eval_model="openai"):
+    # PK CK share the same evaluator
     # Load the prompt from txt file
-    # TODO: Rewrite the prompt
     with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pk.txt"), 'r', encoding='utf-8') as file:
         prompt = file.read()
 
@@ -139,6 +139,7 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
     return {"score": 1, "response": response}
 
 def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PCK"):
+    # RAG PCK Share the same evaluator
     # Load the prompt from txt file
     # TODO: Rewrite the input format
     if task_type == "PCK":
@@ -192,10 +193,10 @@ def evaluate_full(orig_path, dataset):
         # pdb.set_trace()
         if instance["task_type"] == "KFextract":
             metrics.append(eval_kf_extraction(prediction=instance["pred"], acceptable_answers=instance["output"]))
-        elif instance["task_type"] == "PK":
+        elif instance["task_type"] == "PK" or instance["task_type"] == "CK":
             metrics.append(eval_PK(question=question, prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
-        elif instance["task_type"] == "CK":
-            metrics.append(eval_CK(question=question, prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
+        # elif instance["task_type"] == "CK":
+        #     metrics.append(eval_CK(question=question, prediction=instance["pred"], answer=instance["output"], eval_model="openai"))
         elif instance["task_type"] == "PCK" or instance["task_type"] == "RAG":
             metrics.append(eval_RAGPCK(question=question, prediction=instance["pred"], answer=instance["output"], eval_model="openai", task_type=instance["task_type"]))
         else:
@@ -205,10 +206,6 @@ def evaluate_full(orig_path, dataset):
     # Save
     if "pilot" not in orig_path:
         dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics_wq", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
-        if dataset[0]["task_type"] == "CK" or dataset[0]["task_type"] == "PK":
-            # Overall metrics preview
-            print("Overall Accuracy is: ", sum(metrics)/len(metrics))
-    # Output overall metrics
 
 
 if __name__ == "__main__":

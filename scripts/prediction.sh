@@ -3,7 +3,7 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="meta-llama/Llama-3.2-3B-Instruct"
-export task_type="RAG"
+export task_type="PK"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY

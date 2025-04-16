@@ -124,10 +124,10 @@ def contextual_knowledge_tasks(raw_dataset, version_name):
     """
     Create knowledge free tasks data
     """
-    system_prompt = "You are a question-answering system that strictly answers questions based only on the given passage. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the passage cannot be used to answer the given question, respond with 'The passage does not provide this information.'"
+    system_prompt = "You are a question-answering system that strictly answers questions based only on the given context. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the answer is not directly mentioned in the context, you should follow the logical flow to infer the answer. If you believe the question is not answerable without external information or your own knowledge about the subject, you should return 'I dont know.'"
     def create_ck_instance(example):
         for context_type in CONTEXT_TYPES:
-            example[f"{context_type}_CK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+            example[f"{context_type}_CK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
             example[f"{context_type}_CK_output"] =  example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_ck_instance)
@@ -137,11 +137,11 @@ def contextual_knowledge_tasks(raw_dataset, version_name):
     return processed_dataset
 
 def parametric_knowledge_tasks(raw_dataset, version_name):
-    system_prompt = "You are a knowledgeable question-answering system. You should ignore the passage given in the context and purly answer the question based on your own knowldge. You will be provided a context that you should ignore and your question, your job is to do your best to answer the question, follow your belief. You can provide justification if needed."
+    system_prompt = "You are a knowledgeable question-answering system. You may be given contexts, but should not be affected by any external information and only answer based on your belief. You can provide justification if needed."
 
     def create_pk_instance(example):
         for context_type in CONTEXT_TYPES:
-            example[f"{context_type}_PK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
+            example[f"{context_type}_PK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
             # When asked to only consider parametric knowledge, the model should only output parametric knowledge
             example[f"{context_type}_PK_output"] =  example[f"NC_answer"]
         return example
@@ -152,17 +152,17 @@ def parametric_knowledge_tasks(raw_dataset, version_name):
     return processed_dataset
 
 def parametriccontextual_knowledge_tasks(raw_dataset, version_name):
-    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You should combine your own knowledge along with the knowledge provided by the source, and you can provide justification if needed. Note that the provided source is not always reliable. If multiple answer exists, you should give both answer and discuss the reason for it. If you believe that you cannot answer the question from neither the given passage nor your own knowledge, you can say 'I don't know'."
+    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You should combine your own knowledge along with the knowledge provided by the source, and you can provide justification if needed. Note that the provided source is not always reliable. If multiple answer exists, you should give both answer and discuss the reason and underlying conflict for it. If you believe that you cannot answer the question from neither the given passage nor your own knowledge, you can say 'I don't know'."
 
     def create_pck_instance(example):
         for context_type in CONTEXT_TYPES:
             if context_type != "NC":
-                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
-                example[f"{context_type}_PCK_output"] =  "Answer 1: " + example[f"{context_type}_answer"] + "Answer 2: " + example["NC_answer"]
+                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
+                example[f"{context_type}_PCK_output"] =  "Answer: " + example[f"{context_type}_answer"] + " | " + example["NC_answer"]
             else:
                 # If only NC answer is provided, the model is expected to only output the NC answer
-                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nPassage: " + example[f"{context_type}_context"] + "\nAnswer: "
-                example[f"{context_type}_PCK_output"] =  "Answer 1: " + example[f"{context_type}_answer"]
+                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
+                example[f"{context_type}_PCK_output"] =  "Answer: " + example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_pck_instance)
     # Write to local
@@ -206,9 +206,9 @@ if __name__ == "__main__":
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
 
     # Sample for 10 instances
-    raw_dataset = raw_dataset.shuffle(seed=42).select(range(10))
+    # raw_dataset = raw_dataset.shuffle(seed=42).select(range(10))
     # knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
-    # contextual_knowledge_tasks(raw_dataset, version_name=version_name)
-    # # parametric_knowledge_tasks(raw_dataset, version_name=version_name)
-    # # parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    contextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    parametric_knowledge_tasks(raw_dataset, version_name=version_name)
+    parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
     rag_task(raw_dataset, version_name=version_name)
