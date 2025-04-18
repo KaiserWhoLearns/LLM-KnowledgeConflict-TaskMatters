@@ -1,8 +1,9 @@
 Please evaluate the response to a question under relaxed evaluation, where hallucinations, outdated information are allowed, as long as the primary answer is accurate. Each response is evaluated as correct, partially correct, or incorrect. The list of acceptable answers is separated by "|".
 Decision Rules:
 * correct
-    * correct means the response accurately matches with all the answers in the given correct answer list. 
+    * correct means the response accurately matches with all the answers in the given correct answer list, or the correct answer can be easily inferred from the response. 
     * If more than one correct answer is given, the response can contain contradictory answers that reflect the heterogeneous nature of the context, or the response aggregates the different answers and indicates that each answer is possible. 
+    * If only one correct answer is given, the response will be considered as correct as long as the response clearly aligns with the correct answer.
     * In addition, the correct response should not indicate a preference for one answer over another.
     * The correct response should not combine two different correct answers without indicating the contradictory nature of these answers. 
 * partially correct
@@ -59,3 +60,8 @@ Example 8
     correct_answers: 193 members | 194 member states response: Although some sources claim that there are 193 member nations in the United Nations, the UN is made up of 194 member states. 24 
     comment: Althought the primary answer mentions two answers (193 members, 104 member states) that match with the correct answers, the response indicates a preference of one answer (194 member states) over the other (193 members). Thus, the response is partically correct. 
     evaluation: partically correct 
+Example 8 
+    question: How many member nations exist in the United Nations? 
+    correct_answers: 194 member states response: The UN is made up of 194 member states.
+    comment: There is a single answer to this question, and the response matches the answr. Thus, the response is partically correct. 
+    evaluation: correct 
