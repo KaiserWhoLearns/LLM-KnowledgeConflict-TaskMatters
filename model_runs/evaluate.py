@@ -42,6 +42,7 @@ def f1_score(prediction, ground_truth):
     prediction_tokens = normalize_answer(prediction).split()
     ground_truth_tokens = normalize_answer(ground_truth).split()
     common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+    # pdb.set_trace()
     num_same = sum(common.values())
     if num_same == 0:
         return 0
@@ -134,9 +135,11 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
             # Unjudgable instance, model does not think
             return False
     # pdb.set_trace()
+    match = re.search(r"<answer>\s*(.*?)\s*</answer>", prediction)
+    short_ans = match.group(1) if match else ""
     if "incorrect" in response.lower():
-        return {"score": 0, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
-    return {"score": 1, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
+        return {"score": 0, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
+    return {"score": 1, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
 
 def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PCK"):
     # RAG PCK Share the same evaluator
@@ -172,12 +175,15 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
         except:
             # Unjudgable instance, model does not think
             return None
-    # pdb.set_trace()
+    # Extract the final answer
+    match = re.search(r"<answer>\s*(.*?)\s*</answer>", prediction)
+    short_ans = match.group(1) if match else ""
+
     if "incorrect" in response.lower():
-        return {"score": 0, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
+        return {"score": 0, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
     elif "partially correct" in response.lower():
-        return {"score": 0.5, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
-    return {"score": 1, "response": response, "f1": f1_score(prediction=response, ground_truth=answer)}
+        return {"score": 0.5, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
+    return {"score": 1, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
 
 def evaluate_full(orig_path, dataset):
     metrics = dict()
@@ -205,7 +211,7 @@ def evaluate_full(orig_path, dataset):
     dataset = dataset.add_column("question", questions)
     # Save
     if "pilot" not in orig_path:
-        dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics_wq", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
+        dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
 
 
 if __name__ == "__main__":
@@ -222,7 +228,7 @@ if __name__ == "__main__":
     
     # Load the predictions
     dataset = load_dataset("json", data_files=args.pred_path)["train"]
-    # # Sample for 10 instances
+    # # # Sample for 10 instances
     # dataset = dataset.shuffle(seed=42).select(range(10))
 
     # Evalaute

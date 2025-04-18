@@ -3,7 +3,7 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="meta-llama/Llama-3.2-3B-Instruct"
-export task_type="CK"
+export task_type="RAG"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
@@ -33,8 +33,8 @@ sbatch <<EOT
 #SBATCH --job-name=$exp_name
 #SBATCH --mail-user=hsun74@jhu.edu
 #SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
+#SBATCH --partition=a100
+#SBATCH -A mdredze1_gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
@@ -57,11 +57,6 @@ python model_runs/predict.py \
     --data_version $data_version \
     --task_type $task_type
    # --pilot_run \
-
-# python model_runs/evaluate.py \
-#     --test_model_name "llama3.2-3B-Instruct" \
-#     --pred_path ${base_dir}/output/pilotruns/"llama3.2-3B-Instruct"_${task_type}_${data_version}.jsonl \
-#     --task_type $task_type
 
 python model_runs/evaluate.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \

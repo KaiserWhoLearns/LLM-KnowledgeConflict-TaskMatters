@@ -57,7 +57,7 @@ def create_acc_table(test_model_name, data_version=""):
         if "KF" in task_type:
             target_metrics = ["f1", "exact_match", "strict_exact_match"]
         else:
-            target_metrics = ["score"]
+            target_metrics = ["score", "f1"]
         for target_metric in target_metrics:
             row = create_acc_row(test_model_name, task_type, data_version=data_version, target_metric=target_metric)
             row["task"] = task_type

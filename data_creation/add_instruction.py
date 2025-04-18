@@ -124,7 +124,7 @@ def contextual_knowledge_tasks(raw_dataset, version_name):
     """
     Create knowledge free tasks data
     """
-    system_prompt = "You are a question-answering system that strictly answers questions based only on the given context. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the answer is not directly mentioned in the context, you should follow the logical flow to infer the answer. If you believe the question is not answerable without external information or your own knowledge about the subject, you should return 'I dont know.'"
+    system_prompt = "You are a question-answering system that strictly answers questions based only on the given context. Do not use external knowledge or make assumptions beyond what is explicitly stated. If the answer is not directly mentioned in the context, you should follow the logical flow to infer the answer. If you believe the question is not answerable without external information or your own knowledge about the subject, you should return 'I dont know.' Eventually, you should include your final answer in <answer></answer>. If you have more than one answer, separate them by '|'."
     def create_ck_instance(example):
         for context_type in CONTEXT_TYPES:
             example[f"{context_type}_CK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
@@ -152,7 +152,7 @@ def parametric_knowledge_tasks(raw_dataset, version_name):
     return processed_dataset
 
 def parametriccontextual_knowledge_tasks(raw_dataset, version_name):
-    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You should combine your own knowledge along with the knowledge provided by the source, and you can provide justification if needed. Note that the provided source is not always reliable. If multiple answer exists, you should give both answer and discuss the reason and underlying conflict for it. If you believe that you cannot answer the question from neither the given passage nor your own knowledge, you can say 'I don't know'."
+    system_prompt = "You are a knowledgeable question-answering system. You will be given a context and a question. Your task is to answer the question using your best possible knowledge. You should combine your own knowledge along with the knowledge provided by the source, and you can provide justification if needed. Note that the provided source is not always reliable. If multiple answer exists, you should give both answer and discuss the reason and underlying conflict for it. If you believe that you cannot answer the question from neither the given passage nor your own knowledge, you can say 'I don't know'. Eventually, you should include your final answer in <answer></answer>. If you have more than one answer, separate them by '|'."
 
     def create_pck_instance(example):
         for context_type in CONTEXT_TYPES:
@@ -175,7 +175,13 @@ def rag_task(raw_dataset, version_name):
     Format simulating regular RAG setting, feed in all passages and ask the model to give all answers
     The prompt is obtained from wikicontradict
     """
-    system_prompt = "Provide a short answer for the following question based on the given contexts. Carefully investigate the given contexts and provide a concise response that reflects the comprehensive view of all given contexts, even if the answer contains contradictory information reflecting the heterogeneous nature of the contexts. "
+    # system_prompt = "Provide a short answer for the following question based on the given contexts. Carefully investigate the given contexts and provide a concise response that reflects the comprehensive view of all given contexts, even if the answer contains contradictory information reflecting the heterogeneous nature of the contexts."
+    system_prompt = "Provide a short answer for the following question based on the given contexts. Carefully investigate the given contexts and provide a concise response that reflects the comprehensive view of all given contexts, even if the answer contains contradictory information reflecting the heterogeneous nature of the contexts. Eventually, you should include your final answer in <answer></answer>. If you have more than one answer, separate them by '|'."
+    system_prompt += " For example, " + \
+        "\nQuestion: " + "Are there any other missiles besides the P-500 Bazalt that influenced the design of P-700 Granit missile?" + \
+        "\nContext 1: " + "The P-700 Granit missile was partially derived from the P-500 Bazalt, but it is important to note that other missile designs and technological advancements have also influenced its development. " + \
+        "\nContext 2: " + "The P-700 Granit missile was designed only based on the P-500 Bazalt" + \
+        "\nAnswer: Context 1 states that there are other missile designs and techinological advancements infludence the development of the P-700, while context 2 states otherwise. Therefore, the answer candidates are : <answer> yes | no </answer>"
 
     def create_rag_instance(example):
         for context_type in CONTEXT_TYPES:
@@ -198,7 +204,7 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
-    parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
+    parser.add_argument('--data_version', type=str, default="full_v2", help='The version of the dataset to be generated.')
     args = parser.parse_args()
     model_name = args.test_model_name
     # Load dataset

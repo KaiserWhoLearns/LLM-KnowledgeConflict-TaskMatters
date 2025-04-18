@@ -12,22 +12,23 @@ def sample_for_MBE_agreement():
     """
     For PK, PCK, CK, RAG, sample 10 examples each for agreement analysis
     """
-    for task in ["CK", "PK", "PCK", "RAG"]:
-    # for task in ["RAG"]:
+    # for task in ["CK", "PK", "PCK", "RAG"]:
+    for task in ["PK"]:
         # Load the metric json
-        jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics_wq", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
+        jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
         dataset = load_dataset("json", data_files=jsonl_path, split="train")
         sampled_dataset = dataset.shuffle(seed=42).select(range(10))
 
         # Convert to a pandas DataFrame
         df = pd.DataFrame(sampled_dataset)
+        df = pd.concat([df.drop("metrics", axis=1), df["metrics"].apply(pd.Series)], axis=1)
 
         # Ensure output directory exists
         output_dir = os.path.join(os.environ["base_dir"], "output", "annotation", "eval_agreement")
         os.makedirs(output_dir, exist_ok=True)
 
         # Write data
-        output_path = os.path.join(output_dir, f"{task}_wiki.csv")
+        output_path = os.path.join(output_dir, f"{task}.csv")
         df.to_csv(output_path, index=False)
 
 def sample_for_evidence_annotation():

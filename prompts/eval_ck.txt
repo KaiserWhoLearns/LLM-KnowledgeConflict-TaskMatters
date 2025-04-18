@@ -1,4 +1,10 @@
 Please evaluate the response to a question under relaxed evaluation, where hallucinations, outdated information are allowed, as long as the primary answer is accurate.  Each response is evaluated as correct or incorrect.
-correct means the response accurately matches with the answer or the answer can be directly derived from the response. In addition, the correct response should be confident and definitive about the given answer and should not give any contradictory answers. 
-incorrect means the response does not match with the correct answer, or the response merely combines two contradictory answers and indicates that both of them are possible. 
-The primary or final answers when standing alone must be accurate. Any additional information that is provided must not contradict the primary answer or reshape one's perception of them. For answers that involve names of entities (e.g., people), complete names or commonly recognized names are expected. Regarding numerical answers, approximate numbers are generally not accepted unless explicitly included in the ground-truth answers. We accept responses that contain hallucinated or outdated information that does not significantly impact the primary answers. You should provide justifications for your decision. You should make your judgement solely based on the given text, and do not extend with other knowledge. 
+Decision Rules:
+* Correct
+    * correct means the response accurately matches with the answer or the answer can be directly derived from the response. 
+    * In addition, the correct response should be confident and definitive about the given answer and should not give any contradictory answers. 
+* Incorrect
+    * incorrect means the response does not match with the correct answer
+    * or the response merely combines two contradictory answers and indicates that both of them are possible. 
+    * Regarding numerical answers, approximate numbers are generally not accepted unless explicitly included in the ground-truth answers. 
+The primary or final answers when standing alone must be accurate. Any additional information that is provided must not contradict the primary answer or reshape one's perception of them. For answers that involve names of entities (e.g., people), complete names or commonly recognized names are expected. We accept responses that contain hallucinated or outdated information that does not significantly impact the primary answers. You should provide justifications for your decision. You should make your judgement solely based on the given text, and do not extend with other knowledge. 

@@ -19,7 +19,7 @@ PRETTY_TO_MODEL_NAME = {
 }
 
 CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]
-def generate_text_for_dataset(dataset, task, generator, max_length=150):
+def generate_text_for_dataset(dataset, task, generator, max_length=150, eos=None):
     """
     task = {KF, CK, PK}
     """
@@ -33,6 +33,9 @@ def generate_text_for_dataset(dataset, task, generator, max_length=150):
 
             # Remove the input text from output
             pred = output[0]['generated_text'][len(input_text):].strip()
+            # Cut to eos
+            if not eos:
+                pred = pred.split(eos)[0] + eos if eos in pred else pred
             generated_texts.append({
                 "input": entry[f"{context_type}_{task}_input"],
                 "output": entry[f"{context_type}_{task}_output"],
@@ -87,7 +90,10 @@ if __name__ == "__main__":
         dataset = dataset.shuffle(seed=42).select(range(10))
 
     # run prediction
-    pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=200)
+    if "KF" not in args.task_type:
+        pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=200, eos="</answer>")
+    else:
+        pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=200)
 
     if args.save_dir is None:
         if args.pilot_run:
