@@ -31,6 +31,30 @@ def sample_for_MBE_agreement():
         output_path = os.path.join(output_dir, f"{task}.csv")
         df.to_csv(output_path, index=False)
 
+def sample_for_MBE_agreement_by_evidence_type(evidence_type):
+    """
+    For PK, PCK, CK, RAG, sample 10 examples each for agreement analysis
+    """
+    # for task in ["CK", "PK", "PCK", "RAG"]:
+    for task in ["RAG"]:
+        # Load the metric json
+        jsonl_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"llama3.2-3B-Instruct_{task}_full_v2.jsonl")
+        dataset = load_dataset("json", data_files=jsonl_path, split="train")
+        dataset = dataset.filter(lambda x: x["context_type"] == evidence_type)
+        sampled_dataset = dataset.shuffle(seed=42).select(range(10))
+
+        # Convert to a pandas DataFrame
+        df = pd.DataFrame(sampled_dataset)
+        df = pd.concat([df.drop("metrics", axis=1), df["metrics"].apply(pd.Series)], axis=1)
+
+        # Ensure output directory exists
+        output_dir = os.path.join(os.environ["base_dir"], "output", "annotation", "eval_agreement")
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Write data
+        output_path = os.path.join(output_dir, f"{task}_{evidence_type}.csv")
+        df.to_csv(output_path, index=False)
+
 def sample_for_evidence_annotation():
     # Path to your .jsonl file
     jsonl_path = os.path.join(os.environ["data_dir"], "final_data_filtered", "llama3.2-3B-Instruct_full_v2.jsonl")
@@ -65,5 +89,9 @@ def sample_for_evidence_annotation():
         
 
 if __name__ == "__main__":
-    sample_for_MBE_agreement()
+    # sample_for_MBE_agreement()
     # sample_for_evidence_annotation()
+    sample_for_MBE_agreement_by_evidence_type(evidence_type="NC")
+    sample_for_MBE_agreement_by_evidence_type(evidence_type="LPC")
+    sample_for_MBE_agreement_by_evidence_type(evidence_type="HPCE")
+    sample_for_MBE_agreement_by_evidence_type(evidence_type="HPC")

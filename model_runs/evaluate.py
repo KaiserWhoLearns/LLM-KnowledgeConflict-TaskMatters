@@ -110,7 +110,7 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
     with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pk.txt"), 'r', encoding='utf-8') as file:
         prompt = file.read()
 
-    content = f"\n###Question: {question}\n###CorrectAnswer: {answer}\n###Response: {prediction}"
+    content = f"\n###Question: {question}\n###Correct Answer: {answer}\n###Response: {prediction}\n###Comment: "
     # Send OpenAI request
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
@@ -152,7 +152,7 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
         with open(os.path.join(os.environ["base_dir"], "prompts", "eval_rag.txt"), 'r', encoding='utf-8') as file:
             prompt = file.read()
     # Send OpenAI request
-    content = f"\n###Question: {question}\n###correct_answers: {answer}\n###Response: {prediction} + \n###Comment: "
+    content = f"\n###Question: {question}\n###correct_answers: {answer}\n###Response: {prediction} \n###Comment: "
     if eval_model == "openai":
         completion = openai_client.chat.completions.create(
                 model="gpt-4-1106-preview",
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     # Load the predictions
     dataset = load_dataset("json", data_files=args.pred_path)["train"]
     # # Sample for 10 instances
-    # dataset = dataset.shuffle(seed=42).select(range(30))
+    # dataset = dataset.shuffle(seed=42).select(range(300))
 
     # Evalaute
     evaluate_full(orig_path=args.pred_path, dataset=dataset)
