@@ -156,13 +156,13 @@ def parametriccontextual_knowledge_tasks(raw_dataset, version_name):
 
     def create_pck_instance(example):
         for context_type in CONTEXT_TYPES:
-            if context_type != "NC":
+            # if context_type != "NC":
                 example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
                 example[f"{context_type}_PCK_output"] =  "Answer: " + example[f"{context_type}_answer"] + " | " + example["NC_answer"]
-            else:
-                # If only NC answer is provided, the model is expected to only output the NC answer
-                example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
-                example[f"{context_type}_PCK_output"] =  "Answer: " + example[f"{context_type}_answer"]
+            # else:
+            #     # If only NC answer is provided, the model is expected to only output the NC answer
+            #     example[f"{context_type}_PCK_input"] = system_prompt + "Question: " + example["question"] + "\nContext: " + example[f"{context_type}_context"] + "\nAnswer: "
+            #     example[f"{context_type}_PCK_output"] =  "Answer: " + example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_pck_instance)
     # Write to local
@@ -185,13 +185,13 @@ def rag_task(raw_dataset, version_name):
 
     def create_rag_instance(example):
         for context_type in CONTEXT_TYPES:
-            if context_type != "NC":
+            # if context_type != "NC":
                 example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext 1: " + example[f"{context_type}_context"] + '\n Context 2: ' + example["NC_context"] + "\nAnswer: "
                 example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"] + " | " + example["NC_answer"]
-            else:
-                # If only NC answer is provided, the model is expected to only output the NC answer
-                example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext 1: " + example[f"{context_type}_context"] + "\nAnswer: "
-                example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"]
+            # else:
+            #     # If only NC answer is provided, the model is expected to only output the NC answer
+            #     example[f"{context_type}_RAG_input"] = system_prompt + "Question: " + example["question"] + "\nContext 1: " + example[f"{context_type}_context"] + "\nAnswer: "
+            #     example[f"{context_type}_RAG_output"] =  example[f"{context_type}_answer"]
         return example
     processed_dataset = raw_dataset.map(create_rag_instance)
     # Write to local
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     # Sample for 10 instances
     # raw_dataset = raw_dataset.shuffle(seed=42).select(range(10))
     # knowledge_free_tasks_extraction(raw_dataset, version_name=version_name)
-    contextual_knowledge_tasks(raw_dataset, version_name=version_name)
-    parametric_knowledge_tasks(raw_dataset, version_name=version_name)
+    # contextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    # parametric_knowledge_tasks(raw_dataset, version_name=version_name)
     parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
     rag_task(raw_dataset, version_name=version_name)
