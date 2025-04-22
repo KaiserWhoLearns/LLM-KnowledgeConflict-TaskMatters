@@ -144,13 +144,12 @@ def eval_PK(question, prediction, answer, eval_model="openai"):
 def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PCK"):
     # RAG PCK Share the same evaluator
     # Load the prompt from txt file
-    # TODO: Rewrite the input format
-    if task_type == "PCK":
-        with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pck.txt"), 'r', encoding='utf-8') as file:
-            prompt = file.read()
-    else:
-        with open(os.path.join(os.environ["base_dir"], "prompts", "eval_rag.txt"), 'r', encoding='utf-8') as file:
-            prompt = file.read()
+    # if task_type == "PCK":
+    #     with open(os.path.join(os.environ["base_dir"], "prompts", "eval_pck.txt"), 'r', encoding='utf-8') as file:
+    #         prompt = file.read()
+    # else:
+    with open(os.path.join(os.environ["base_dir"], "prompts", "eval_rag.txt"), 'r', encoding='utf-8') as file:
+        prompt = file.read()
     # Send OpenAI request
     content = f"\n###Question: {question}\n###correct_answers: {answer}\n###Response: {prediction} \n###Comment: "
     if eval_model == "openai":

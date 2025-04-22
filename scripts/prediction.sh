@@ -3,7 +3,7 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="meta-llama/Llama-3.2-3B-Instruct"
-export task_type="RAG"
+export task_type="CK"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
@@ -33,8 +33,8 @@ sbatch <<EOT
 #SBATCH --job-name=$exp_name
 #SBATCH --mail-user=hsun74@jhu.edu
 #SBATCH --mail-type=FAIL,END
-#SBATCH --partition=a100
-#SBATCH -A mdredze1_gpu
+#SBATCH -A mdredze80_gpu
+#SBATCH --partition=ica100
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G

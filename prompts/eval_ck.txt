@@ -1,4 +1,4 @@
-Please evaluate the response to a question under relaxed evaluation, where hallucinations, outdated information are allowed, as long as the primary answer is accurate.  Each response is evaluated as correct or incorrect.
+Do not fact-check or rely on world knowledge. Assume the reference (correct_answers) is correct. Please evaluate the response to a question under relaxed evaluation, where hallucinations, outdated information are allowed, as long as the primary answer is accurate.  Each response is evaluated as correct or incorrect.
 Decision Rules:
 * Correct
     * correct means the response accurately matches with the answer or the answer can be directly derived from the response. 
