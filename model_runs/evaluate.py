@@ -179,10 +179,10 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
     match = re.search(r"<answer>\s*(.*?)\s*</answer>", prediction)
     short_ans = match.group(1) if match else ""
 
-    if "incorrect" in response.lower():
-        return {"score": 0, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
-    elif "partially correct" in response.lower():
+    if "partially correct" in response.lower():
         return {"score": 0.5, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
+    elif "incorrect" in response.lower():
+        return {"score": 0, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
     return {"score": 1, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
 
 def evaluate_full(orig_path, dataset):
@@ -190,8 +190,12 @@ def evaluate_full(orig_path, dataset):
     metrics = []
     questions = []
     extract_question_text = lambda text: text.rsplit("Question: ", 1)[-1].split("\nContext", 1)[0].strip() if "Question: " in text and "\nAnswer: " in text else None
+    cleaned_pred = []
 
     for instance in dataset:
+        if "</answer>" in instance["pred"]:
+            instance["pred"] = instance["pred"].split("</answer>")[0] + "</answer>"
+        cleaned_pred.append(instance["pred"])
         question = extract_question_text(instance["input"])
         questions.append(question)
         if question is None:
@@ -209,6 +213,7 @@ def evaluate_full(orig_path, dataset):
             raise Exception(f"The given task type ({instance['task_type']}) is not supported.")
     dataset = dataset.add_column("metrics", metrics)
     dataset = dataset.add_column("question", questions)
+    dataset = dataset.add_column("cleaned_pred", cleaned_pred)
     # Save
     if "pilot" not in orig_path:
         dataset.to_json(os.path.join(os.environ["base_dir"], "output", "metrics", orig_path.split("/")[-1].split(".json")[0] + ".jsonl"))
@@ -219,7 +224,7 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
                             help='name of a dataset')
-    parser.add_argument('--task_type', type=str, default="PK",
+    parser.add_argument('--task_type', type=str, default="RAG",
                             help='type of task. = PK, CK, KF, RAG')
     parser.add_argument('--pred_path', type=str, default=None,
                             help='load prediction from')
@@ -229,7 +234,7 @@ if __name__ == "__main__":
     # Load the predictions
     dataset = load_dataset("json", data_files=args.pred_path)["train"]
     # # Sample for 10 instances
-    # dataset = dataset.shuffle(seed=42).select(range(300))
+    dataset = dataset.shuffle(seed=42).select(range(100))
 
     # Evalaute
     evaluate_full(orig_path=args.pred_path, dataset=dataset)
