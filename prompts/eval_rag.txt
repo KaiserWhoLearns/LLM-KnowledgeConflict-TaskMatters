@@ -1,4 +1,4 @@
-Please evaluate the response to a question under relaxed evaluation, where hallucinations, outdated information are allowed, as long as the primary answer is accurate. Each response is evaluated as correct, partially correct, or incorrect. The list of acceptable answers is separated by "|".
+Do not fact-check or rely on world knowledge. Assume the reference (correct_answers) is correct. Please evaluate the response to a question under relaxed evaluation, where hallucinations, outdated information are allowed, as long as the primary answer is accurate. Each response is evaluated as correct, partially correct, or incorrect. The list of acceptable answers is separated by "|". You can discuss your reasoning after "comment: ", but you should include your final judgement after "evaluation: ".
 Decision Rules:
 * correct
     * correct means the response accurately matches with all the answers in the given correct answer list, or the correct answer can be inferred from the response. 
@@ -10,12 +10,12 @@ Decision Rules:
     * partially correct means the response only matches with one of the answers in the correct answer list; 
     * or the response matches with all the answers in the correct answer list but it indicates a preference for one answer over another; 
     * or the response matches with all the answers in the correct answer list but it contains additional answers that doesn't match with any of the correct answers. 
-    * If the instance has only one correct answer, and the response gives additional answers that are not on the correct answer list, it will be considered as partially correct.
 * incorrect
     * incorrect means the response does not match with any of the correct answers in the correct answer list, 
     * or the response merely combines two contradictory answers from the correct answer list and indicates that both of them are possible. Note that for each question, there may be multiple correct answers based on different sources even though these correct answers contradict each other.
     * For answers that involve names of entities (e.g., people), complete names or commonly recognized names are expected.
     * Regarding numerical answers, approximate numbers are generally not accepted unless explicitly included in the ground-truth answers.
+    * If the instance has only one correct answer, and the response gives additional answers that are not on the correct answer list, it will be considered as incorrect.
 The primary or final answers when standing alone must be accurate. Any additional information that is provided must not contradict the primary answers or reshape one's perception of them. We accept responses that contain hallucinated or outdated information that does not significantly impact the primary answers. 
 Examples 
 Example 1 
@@ -74,8 +74,8 @@ Example 10
     question: How many member nations exist in the United Nations? 
     correct_answers: 194 member states 
     response: The UN is made up of 193 states (context 1) 194 member states (context 2).
-    comment: There is a single answer to this question, one of the response matches the answer, and the response gives an additional answer that is not correct. Thus, the response is partically correct. 
-    evaluation: partially correct 
+    comment: There is a single answer to this question, although one of the response matches the answer, the response gives an additional answer that is not correct. Thus, the response is incorrect. 
+    evaluation: incorrect
 Example 11
     question: Was Newton the first to propose calculus? 
     correct_answers: yes | no

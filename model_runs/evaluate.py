@@ -179,9 +179,12 @@ def eval_RAGPCK(question, prediction, answer, eval_model="openai", task_type="PC
     match = re.search(r"<answer>\s*(.*?)\s*</answer>", prediction)
     short_ans = match.group(1) if match else ""
 
-    if "partially correct" in response.lower():
+    # Strip for final response
+    final_res = response.split("evaluation: ")[-1]
+
+    if "partially correct" in final_res.lower():
         return {"score": 0.5, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
-    elif "incorrect" in response.lower():
+    elif "incorrect" in final_res.lower():
         return {"score": 0, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
     return {"score": 1, "response": response, "f1": f1_score(prediction=short_ans, ground_truth=answer), "short_ans": short_ans}
 
