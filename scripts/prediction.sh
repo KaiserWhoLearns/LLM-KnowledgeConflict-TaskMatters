@@ -2,8 +2,8 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="meta-llama/Llama-3.2-3B-Instruct"
-export task_type="CK"
+export model_name="mistralai/Mistral-7B-Instruct-v0.3"
+export task_type="PK"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
@@ -33,8 +33,8 @@ sbatch <<EOT
 #SBATCH --job-name=$exp_name
 #SBATCH --mail-user=hsun74@jhu.edu
 #SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
+#SBATCH --partition=a100
+#SBATCH -A mdredze1_gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
@@ -53,15 +53,21 @@ cd $base_dir
 
 # python model_runs/predict.py \
 #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-#     --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
 #     --data_version $data_version \
-#     --task_type $task_type
+#     --task_type $task_type \
+#     --mult_choice
+    # --data_path ${data_dir}/task_data/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl \
 #    # --pilot_run \
 
-python model_runs/evaluate.py \
+python model_runs/evaluate_choice.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}.jsonl \
+    --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}_choice.jsonl \
     --task_type $task_type
+
+# python model_runs/evaluate.py \
+#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+#     --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}.jsonl \
+#     --task_type $task_type
 
 # python model_runs/aggregate_eval_results.py
 #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]}

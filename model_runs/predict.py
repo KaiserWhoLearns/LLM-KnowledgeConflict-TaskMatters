@@ -54,6 +54,8 @@ if __name__ == "__main__":
                             help='type of task. = PK, CK, PCK, KF, RAG')
     parser.add_argument('--pilot_run', action="store_true",
                             help='whether this is a pilot run. When set to true, we only make prediction for 10 insances.')
+    parser.add_argument('--mult_choice', action="store_true",
+                            help='whether this is in multiple choice task.')
     parser.add_argument('--data_path', type=str, default=None,
                             help='Load data from. If none, will load from default document name.')
     parser.add_argument('--save_dir', type=str, default=None,
@@ -69,19 +71,23 @@ if __name__ == "__main__":
     generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
     # Load the corresponding data
+    if args.mult_choice:
+        root_task_path = os.path.join(os.environ["data_dir"], "choice_task")
+    else:
+        root_task_path = os.path.join(os.environ["data_dir"], "task_data")
     if args.data_path is not None:
         task_file_path = args.data_path
     else:
         if "KF" in args.task_type:
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_{args.task_type}_{data_version}.jsonl")
+            task_file_path = os.path.join(root_task_path, f"{model_name}_{args.task_type}_{data_version}.jsonl")
         elif args.task_type == "CK":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_contextual_knowledge_{data_version}.jsonl")
+            task_file_path = os.path.join(root_task_path, f"{model_name}_contextual_knowledge_{data_version}.jsonl")
         elif args.task_type == "PK":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametric_knowledge_{data_version}.jsonl")
+            task_file_path = os.path.join(root_task_path, f"{model_name}_parametric_knowledge_{data_version}.jsonl")
         elif args.task_type == "PCK":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_parametriccontextual_knowledge_{data_version}.jsonl")
+            task_file_path = os.path.join(root_task_path, f"{model_name}_parametriccontextual_knowledge_{data_version}.jsonl")
         elif args.task_type == "RAG":
-            task_file_path = os.path.join(os.environ["data_dir"], "task_data", f"{model_name}_rag_{data_version}.jsonl")
+            task_file_path = os.path.join(root_task_path, f"{model_name}_rag_{data_version}.jsonl")
         else:
             raise Exception("Undefined task type: " + args.task_type + " or data version: " + data_version)
     dataset = load_dataset("json", data_files=task_file_path)["train"]
@@ -100,6 +106,9 @@ if __name__ == "__main__":
         if args.pilot_run:
             pred_res.to_json(os.path.join(os.environ["base_dir"], "output", "pilotruns", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
         else:
-            pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}.jsonl"))
+            if args.mult_choice:
+                pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}_choice.jsonl"))
+            else:
+                pred_res.to_json(os.path.join(os.environ["base_dir"], "output", f"{model_name}_{args.task_type}_{data_version}_free.jsonl"))
     else:
         pred_res.to_json(args.save_dir)
