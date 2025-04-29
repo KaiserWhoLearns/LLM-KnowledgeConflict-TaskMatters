@@ -50,7 +50,7 @@ def generate_text_for_dataset(dataset, task, generator, max_length=150, eos=None
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required positional argument
-    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+    parser.add_argument('--test_model_name', type=str, default="mistral7B",
                             help='name of a dataset')
     parser.add_argument('--task_type', type=str, default="PK",
                             help='type of task. = PK, CK, PCK, KF, RAG')

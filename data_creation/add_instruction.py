@@ -202,7 +202,7 @@ def rag_task(raw_dataset, version_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required positional argument
-    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+    parser.add_argument('--test_model_name', type=str, default="mistral7B",
                             help='name of a dataset')
     parser.add_argument('--data_version', type=str, default="full_v2", help='The version of the dataset to be generated.')
     args = parser.parse_args()

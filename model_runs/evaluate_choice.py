@@ -114,7 +114,7 @@ def evaluate_full(orig_path, dataset):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required positional argument
-    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+    parser.add_argument('--test_model_name', type=str, default="mistral7B",
                             help='name of a dataset')
     parser.add_argument('--task_type', type=str, default="RAG",
                             help='type of task. = PK, CK, KF, RAG')

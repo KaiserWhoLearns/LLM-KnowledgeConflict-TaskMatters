@@ -322,7 +322,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # Required positional argument
-    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+    parser.add_argument('--test_model_name', type=str, default="mistral7B",
                             help='name of a dataset')
     parser.add_argument('--use_batch', action="store_true",
                             help='whether to use the batching feature in OpenAI. Enable it could be slow.')

@@ -117,7 +117,7 @@ if __name__ == "__main__":
     get_constant()
     parser = argparse.ArgumentParser()
     # Required positional argument
-    parser.add_argument('--test_model_name', type=str, default="llama3.2-3B-Instruct",
+    parser.add_argument('--test_model_name', type=str, default="mistral7B",
                             help='name of a dataset')
     parser.add_argument('--data_version', type=str, default=None, help='The version of the dataset to be generated.')
     parser.add_argument('--input_file_path', type=str, default=None,
