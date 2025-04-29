@@ -14,7 +14,9 @@ MODEL_NAME_TO_PRETTY = {
     "meta-llama/Llama-3.2-3B-Instruct": "llama3.2-3B-Instruct",
     "mistralai/Mistral-7B-Instruct-v0.3": "mistral7B",
     "Qwen/Qwen2.5-7B-Instruct-1M": "qwen7B-instruct",
-    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B": "deepseek-llama8b" 
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B": "deepseek-llama8b",
+    "google/gemma-3-4b-it": "gemma3-4b",
+    "allenai/OLMo-2-1124-7B-Instruct": "olmo2-7B"
 }
 
 def helper_compute_target_prob(target_ids, logits):
