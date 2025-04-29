@@ -15,7 +15,9 @@ PRETTY_TO_MODEL_NAME = {
     "llama3.2-3B-Instruct": "meta-llama/Llama-3.2-3B-Instruct",
     "mistral7B": "mistralai/Mistral-7B-Instruct-v0.3",
     "qwen7B-instruct": "Qwen/Qwen2.5-7B-Instruct-1M",
-    "deepseek-llama8b" : "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
+    "deepseek-llama8b" : "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "gemma3-4b": "google/gemma-3-4b-it",
+    "olmo2-7B": "allenai/OLMo-2-1124-7B-Instruct"
 }
 
 CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]

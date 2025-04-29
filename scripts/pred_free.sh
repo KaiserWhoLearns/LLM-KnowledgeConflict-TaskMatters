@@ -2,8 +2,8 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
-export task_type="PK"
+export model_name="allenai/OLMo-2-1124-7B-Instruct"
+export task_type="RAG"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY

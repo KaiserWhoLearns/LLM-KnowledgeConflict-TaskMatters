@@ -21,9 +21,9 @@ def create_acc_row(test_model_name, task_type, data_version="", format="mult", t
     if format != "mult":
         if data_version == "":
             # final data/no version
-            data_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"{test_model_name}_{task_type}.jsonl")
+            data_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"{test_model_name}_{task_type}_free.jsonl")
         else:
-            data_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"{test_model_name}_{task_type}_{data_version}.jsonl")
+            data_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"{test_model_name}_{task_type}_{data_version}_free.jsonl")
         # Load the evaluation results
         try:
             dataset = load_dataset("json", data_files=data_path)["train"]
@@ -101,4 +101,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_version = args.data_version
     
-    create_acc_table(args.test_model_name, format="mult", data_version=data_version)
+    create_acc_table(args.test_model_name, format=args.format, data_version=data_version)

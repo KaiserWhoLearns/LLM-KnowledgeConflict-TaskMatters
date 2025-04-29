@@ -2,7 +2,7 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="mistralai/Mistral-7B-Instruct-v0.3"
+export model_name="allenai/OLMo-2-1124-7B-Instruct"
 export task_type="PK"
 export data_version="full_v2"
 
