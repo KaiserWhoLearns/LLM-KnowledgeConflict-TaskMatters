@@ -69,7 +69,7 @@ def eval_PKCK(prediction, answer):
 
 def extract_choices(text):
     # Match patterns like (A), ( AB), ( AC ), A., B., etc.
-    pattern = r'\(?\s*([A-D](?:\s+[A-D])*)\s*\)?\.?'
+    pattern = r'\(\s*([A-D](?:\s*[A-D])*)\s*\)'
     matches = re.findall(pattern, text)
 
     results = []
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     
     # Load the predictions
     dataset = load_dataset("json", data_files=args.pred_path)["train"]
-    # # Sample for 10 instances
-    dataset = dataset.shuffle(seed=42).select(range(100))
+    # # # Sample for 10 instances
+    # dataset = dataset.shuffle(seed=42).select(range(100))
 
     # Evalaute
     evaluate_full(orig_path=args.pred_path, dataset=dataset)

@@ -96,7 +96,6 @@ if __name__ == "__main__":
 
     if args.pilot_run:
         dataset = dataset.shuffle(seed=42).select(range(10))
-    dataset = dataset.shuffle(seed=42).select(range(100))
 
     # run prediction
     if "KF" not in args.task_type:

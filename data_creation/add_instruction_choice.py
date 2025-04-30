@@ -122,8 +122,7 @@ if __name__ == "__main__":
     raw_dataset = load_dataset("json", data_files=os.path.join(os.environ["data_dir"], "final_data_filtered", f"{model_name}_{version_name}.jsonl"))["train"]
     raw_dataset = add_choices(raw_dataset)
     # Sample for 10 instances
-    raw_dataset = raw_dataset.shuffle(seed=42).select(range(100))
-    # contextual_knowledge_tasks(raw_dataset, version_name=version_name)
-    # parametric_knowledge_tasks(raw_dataset, version_name=version_name)
+    contextual_knowledge_tasks(raw_dataset, version_name=version_name)
+    parametric_knowledge_tasks(raw_dataset, version_name=version_name)
     parametriccontextual_knowledge_tasks(raw_dataset, version_name=version_name)
     rag_task(raw_dataset, version_name=version_name)
