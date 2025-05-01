@@ -3,7 +3,7 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
-export task_type="RAG"
+export task_type="CK"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
@@ -42,7 +42,7 @@ sbatch <<EOT
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --gpus=1
-#SBATCH --time=0-15:00:00 # Max runtime in DD-HH:MM:SS format.
+#SBATCH --time=2-15:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log

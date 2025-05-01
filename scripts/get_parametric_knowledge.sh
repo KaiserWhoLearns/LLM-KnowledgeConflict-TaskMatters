@@ -2,9 +2,15 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="allenai/OLMo-2-1124-7B-Instruct"
+export model_name="Qwen/Qwen3-8B"
+
+reasoning_flag=""
+if [[ "$model_name" == "Qwen/Qwen3-8B" || "$model_name" == "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" ]]; then
+    reasoning_flag="--reasoning_model"
+fi
 
 declare -A MODEL_NAME_TO_PRETTY
+MODEL_NAME_TO_PRETTY["Qwen/Qwen3-8B"]="qwen3-8B"
 MODEL_NAME_TO_PRETTY["google/gemma-3-4b-it"]="gemma3-4b"
 MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-7B-Instruct"]="olmo2-7B"
 MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.1-8B-Instruct"]="llama-3.1-8B-Instruct"
@@ -29,8 +35,8 @@ sbatch <<EOT
 #SBATCH --job-name=$exp_name
 #SBATCH --mail-user=hsun74@jhu.edu
 #SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
+#SBATCH --partition=a100
+#SBATCH -A mdredze1_gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
@@ -48,6 +54,8 @@ conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
 
-python data_creation/get_parametric_knowledge.py
+python data_creation/get_parametric_knowledge.py \
+    $reasoning_flag \
+    --model_name $model_name
 
 EOT
