@@ -120,21 +120,21 @@ def query_reasoning_model(model_name):
     num_invalid = 0
     for instance in tqdm(raw_data):
         # Input text for inference
-        input_prompt1 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct, and you should solely give your judgement in the form of yes or no without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer1']} \n Is this answer correct?"
-        input_prompt2 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct to answer the given question, and you should solely give your judgement in the form of 'yes' or 'no' without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer2']} \n Is this answer correct?"
+        input_prompt1 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct, and you should solely give your judgement in the form of yes or no without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer1']} \n Is this answer correct? <think>"
+        input_prompt2 = f"You are an independent model with rich knowledge, you will be ask to validate whether the given answer is correct to answer the given question, and you should solely give your judgement in the form of 'yes' or 'no' without additional information.  \n Question: {instance['question']} \nAnswer: {instance['answer2']} \n Is this answer correct? <think>"
 
         # Tokenize the input
         input1 = tokenizer(input_prompt1, return_tensors="pt", padding=True).to("cuda")
         input2 = tokenizer(input_prompt2, return_tensors="pt", padding=True).to("cuda")
 
         # Generate output from the model
-        output1 = model.generate(input1['input_ids'], max_length=input1.input_ids.shape[1] + 5, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input1["attention_mask"])
-        output2 = model.generate(input2['input_ids'], max_length=input2.input_ids.shape[1] + 5, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input2["attention_mask"])
+        output1 = model.generate(input1['input_ids'], max_length=input1.input_ids.shape[1] + 500, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input1["attention_mask"])
+        output2 = model.generate(input2['input_ids'], max_length=input2.input_ids.shape[1] + 500, num_return_sequences=1, return_dict_in_generate=True, output_logits=True, attention_mask=input2["attention_mask"])
 
         ### Free text check: Whether the output prediction contains the answer
         # Decode the generated output
-        pred1 = tokenizer.decode(output1[0], skip_special_tokens=True)
-        pred2 = tokenizer.decode(output2[0], skip_special_tokens=True)
+        pred1 = tokenizer.decode(output1[0][0], skip_special_tokens=True)
+        pred2 = tokenizer.decode(output2[0][0], skip_special_tokens=True)
         pdb.set_trace()
         # TODO: Check whether my implementation is correct
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     get_constant()
     parser = argparse.ArgumentParser()
     # Required positional argument
-    parser.add_argument('--model_name', type=str, default="mistral7B",
+    parser.add_argument('--model_name', type=str, default="mistralai/Mistral-7B-Instruct-v0.3",
                             help='name of a dataset')
     parser.add_argument('--reasoning_model', action="store_true",
                             help='whether this is a reasoning model (<think></think>).')

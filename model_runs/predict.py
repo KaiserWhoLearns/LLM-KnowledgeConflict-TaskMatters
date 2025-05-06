@@ -36,7 +36,7 @@ def generate_text_for_dataset(dataset, task, generator, max_length=150, eos=None
             # Remove the input text from output
             pred = output[0]['generated_text'][len(input_text):].strip()
             # Cut to eos
-            if not eos:
+            if eos:
                 pred = pred.split(eos)[0] + eos if eos in pred else pred
             generated_texts.append({
                 "input": entry[f"{context_type}_{task}_input"],

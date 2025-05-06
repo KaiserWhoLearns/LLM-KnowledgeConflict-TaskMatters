@@ -3,7 +3,7 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="allenai/OLMo-2-1124-7B-Instruct"
-export task_type="RAG"
+export task_type="KFextract"
 export data_version="full_v2"
 
 declare -A TASK_TYPE_PRETTY
@@ -36,13 +36,13 @@ sbatch <<EOT
 #SBATCH --job-name=$exp_name
 #SBATCH --mail-user=hsun74@jhu.edu
 #SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
+#SBATCH --partition=a100
+#SBATCH -A mdredze1_gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --gpus=1
-#SBATCH --time=0-15:00:00 # Max runtime in DD-HH:MM:SS format.
+#SBATCH --time=1-00:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
