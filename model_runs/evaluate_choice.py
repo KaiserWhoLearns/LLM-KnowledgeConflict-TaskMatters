@@ -99,7 +99,6 @@ def evaluate_full(orig_path, dataset):
         # Convert answers into list
         answers = list(instance["output"])
 
-
         if question is None:
             print("Error: No question is contained in this example. Input = ", instance["input"])
         metrics.append(eval_PKCK(prediction=pred, answer=answers))
