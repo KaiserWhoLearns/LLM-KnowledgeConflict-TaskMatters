@@ -18,7 +18,7 @@ def create_acc_row(test_model_name, task_type, data_version="", format="mult", t
      Performance (acc): NC HPCE HPC LPC Overall
     target_metric = f1, em, overallem, it would be effective only in the case of KF
     """
-    if format != "mult":
+    if format != "mult" or task_type == "KFextract":
         if data_version == "":
             # final data/no version
             data_path = os.path.join(os.environ["base_dir"], "output", "metrics", f"{test_model_name}_{task_type}_free.jsonl")
