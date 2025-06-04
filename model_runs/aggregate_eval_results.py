@@ -1,11 +1,13 @@
 import re
 import os
 import sys
+import math
 import pdb
 from prettytable import PrettyTable
 import pandas as pd
 sys.path.append(os.getcwd())
 import argparse
+import statistics   
 from dotenv import load_dotenv
 from datasets import load_from_disk, load_dataset
 
@@ -56,6 +58,12 @@ def create_acc_row(test_model_name, task_type, data_version="", format="mult", t
                     metrics.append(instance["metrics"][target_metric])
         # Add to row
         row[evidence_type] = sum(metrics) / len(metrics) * 100
+        row[f"{evidence_type}_std"] = (
+            statistics.stdev(metrics) * 100 if len(metrics) > 1 else 0.0
+        )
+        row[f"{evidence_type}_sem"] = (
+            statistics.stdev(metrics) * 100 / math.sqrt(len(metrics))  if len(metrics) > 1 else 0.0
+        )
         overall_metrics += metrics
     row["Overall"] = sum(overall_metrics) / len(overall_metrics) * 100
     return row
