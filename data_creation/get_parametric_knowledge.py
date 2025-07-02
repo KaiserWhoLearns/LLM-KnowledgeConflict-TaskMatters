@@ -13,12 +13,14 @@ from utils.constant import get_constant
 
 MODEL_NAME_TO_PRETTY = {
     "Qwen/Qwen3-8B":"qwen3-8B",
+    "Qwen/Qwen2.5-14B-Instruct":"qwen2.5-14B-instruct",
     "meta-llama/Llama-3.2-3B-Instruct": "llama3.2-3B-Instruct",
     "mistralai/Mistral-7B-Instruct-v0.3": "mistral7B",
     "Qwen/Qwen2.5-7B-Instruct-1M": "qwen7B-instruct",
     "deepseek-ai/DeepSeek-R1-Distill-Llama-8B": "deepseek-llama8b",
     "google/gemma-3-4b-it": "gemma3-4b",
-    "allenai/OLMo-2-1124-7B-Instruct": "olmo2-7B"
+    "allenai/OLMo-2-1124-7B-Instruct": "olmo2-7B",
+    "allenai/OLMo-2-1124-13B-Instruct": "olmo2-13B"
 }
 
 def helper_compute_target_prob(target_ids, logits):

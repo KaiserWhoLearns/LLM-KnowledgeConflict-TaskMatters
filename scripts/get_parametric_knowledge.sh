@@ -2,7 +2,8 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen3-8B"
+export model_name="Qwen/Qwen2.5-14B-Instruct"
+# export model_name="allenai/OLMo-2-1124-13B-Instruct"
 
 reasoning_flag=""
 if [[ "$model_name" == "Qwen/Qwen3-8B" || "$model_name" == "deepseek-ai/DeepSeek-R1-Distill-Llama-8B" ]]; then
@@ -13,15 +14,17 @@ declare -A MODEL_NAME_TO_PRETTY
 MODEL_NAME_TO_PRETTY["Qwen/Qwen3-8B"]="qwen3-8B"
 MODEL_NAME_TO_PRETTY["google/gemma-3-4b-it"]="gemma3-4b"
 MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-7B-Instruct"]="olmo2-7B"
-MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.1-8B-Instruct"]="llama-3.1-8B-Instruct"
+MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-13B-Instruct"]="olmo2-13B"
 MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.2-1B-Instruct"]="llama3.2-1B-Instruct"
 MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.2-3B-Instruct"]="llama3.2-3B-Instruct"
 MODEL_NAME_TO_PRETTY["mistralai/Mistral-7B-Instruct-v0.3"]="mistral7B"
 MODEL_NAME_TO_PRETTY["Qwen/Qwen2.5-7B-Instruct-1M"]="qwen7B-instruct"
+MODEL_NAME_TO_PRETTY["Qwen/Qwen2.5-14B-Instruct"]="qwen2.5-14B-instruct"
+MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.3-70B-Instruct"]="llama3.3-70B-Instruct"
 MODEL_NAME_TO_PRETTY["Qwen/Qwen3-8B"]="qwen3-8B"
 MODEL_NAME_TO_PRETTY["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]="deepseek-llama8b" 
 
-export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-get_knoweldge"
+export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-get_knoweldge-2gpu"
 echo "Running $exp_name"
 
 export BNB_CUDA_VERSION=118
@@ -40,8 +43,8 @@ sbatch <<EOT
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
-#SBATCH --gpus=1
-#SBATCH --time=0-24:00:00 # Max runtime in DD-HH:MM:SS format.
+#SBATCH --gpus=3
+#SBATCH --time=2-24:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
 #SBATCH --output=${base_dir}/logs/output_${exp_name}.log
