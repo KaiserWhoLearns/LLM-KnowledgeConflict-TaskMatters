@@ -15,15 +15,18 @@ PRETTY_TO_MODEL_NAME = {
     "llama3.2-3B-Instruct": "meta-llama/Llama-3.2-3B-Instruct",
     "mistral7B": "mistralai/Mistral-7B-Instruct-v0.3",
     "qwen7B-instruct": "Qwen/Qwen2.5-7B-Instruct-1M",
+    "qwen2.5-14B-instruct": "Qwen/Qwen2.5-14B-Instruct-1M",
     "deepseek-llama8b" : "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "gemma3-4b": "google/gemma-3-4b-it",
-    "olmo2-7B": "allenai/OLMo-2-1124-7B-Instruct"
+    "olmo2-7B": "allenai/OLMo-2-1124-7B-Instruct",
+    "olmo2-13B": "allenai/OLMo-2-1124-13B-Instruct"
 }
 
 CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]
 def generate_text_for_dataset(dataset, task, generator, max_length=150, eos=None):
     """
     task = {KF, CK, PK}
+    max_length=200 for small models, 100 for large models
     """
     # Generate text for the entire dataset
     generated_texts = []
@@ -67,9 +70,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_version = args.data_version
     model_name = args.test_model_name
-    model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
-    tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name])
+    print("Loading Model...")
+    model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto")
+    tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto")
 
+    print("Successfully load model. Loading Generator...")
     generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
     # Load the corresponding data
@@ -99,9 +104,9 @@ if __name__ == "__main__":
 
     # run prediction
     if "KF" not in args.task_type:
-        pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=200, eos="</answer>")
+        pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100, eos="</answer>")
     else:
-        pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=200)
+        pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100)
 
     if args.save_dir is None:
         if args.pilot_run:
