@@ -2,7 +2,7 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-14B-Instruct"
+export model_name="allenai/OLMo-2-1124-13B-Instruct"
 export task_type="PCK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
 export data_version="full_v2"
 
@@ -62,10 +62,10 @@ python model_runs/predict.py \
     --task_type $task_type \
     --mult_choice
 
-# python model_runs/evaluate_choice.py \
-#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-#     --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}_choice.jsonl \
-#     --task_type $task_type
+python model_runs/evaluate_choice.py \
+    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --pred_path ${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}_choice.jsonl \
+    --task_type $task_type
 
 # python model_runs/aggregate_eval_results.py
 #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]}
