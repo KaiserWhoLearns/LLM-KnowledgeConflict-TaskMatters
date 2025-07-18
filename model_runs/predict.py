@@ -32,22 +32,25 @@ def generate_text_for_dataset(dataset, task, generator, max_length=150, eos=None
     generated_texts = []
     for entry in dataset:
         for context_type in CONTEXT_TYPES:
-            # Input, Output, Prediction, Context type, task type
-            input_text = entry[f"{context_type}_{task}_input"]
-            output = generator(input_text, max_new_tokens=max_length, num_return_sequences=1)
+            try:
+                # Input, Output, Prediction, Context type, task type
+                input_text = entry[f"{context_type}_{task}_input"]
+                output = generator(input_text, max_new_tokens=max_length, num_return_sequences=1)
 
-            # Remove the input text from output
-            pred = output[0]['generated_text'][len(input_text):].strip()
-            # Cut to eos
-            if eos:
-                pred = pred.split(eos)[0] + eos if eos in pred else pred
-            generated_texts.append({
-                "input": entry[f"{context_type}_{task}_input"],
-                "output": entry[f"{context_type}_{task}_output"],
-                "pred": pred,
-                "context_type": context_type,
-                "task_type": task
-            })
+                # Remove the input text from output
+                pred = output[0]['generated_text'][len(input_text):].strip()
+                # Cut to eos
+                if eos:
+                    pred = pred.split(eos)[0] + eos if eos in pred else pred
+                generated_texts.append({
+                    "input": entry[f"{context_type}_{task}_input"],
+                    "output": entry[f"{context_type}_{task}_output"],
+                    "pred": pred,
+                    "context_type": context_type,
+                    "task_type": task
+                })
+            except:
+                pass
     return Dataset.from_list(generated_texts)
 
 if __name__ == "__main__":

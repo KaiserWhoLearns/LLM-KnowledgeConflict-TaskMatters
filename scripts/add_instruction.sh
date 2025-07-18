@@ -2,7 +2,7 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-14B-Instruct"
+export model_name="allenai/OLMo-2-1124-7B-Instruct"
 # export task_type="RAG"
 export data_version="full_v2"
 
@@ -60,7 +60,11 @@ cd $base_dir
 #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
 #     --data_version $data_version
 
-python data_creation/add_instruction_choice.py \
+# python data_creation/add_instruction_choice.py \
+#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+#     --data_version $data_version
+
+python data_creation/length_ablation.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
     --data_version $data_version
 
