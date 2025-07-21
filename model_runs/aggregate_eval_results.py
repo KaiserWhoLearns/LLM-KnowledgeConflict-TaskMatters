@@ -48,8 +48,8 @@ def create_acc_row(test_model_name, task_type, data_version="", format="mult", t
     # For each evidence type, compute metrics
     row = {"metric": target_metric}
     overall_metrics = []
-    metrics = []
     for evidence_type in ["NC", "HPC", "HPCE", "LPC"]:
+        metrics = []
         for instance in dataset:
             if instance["context_type"] == evidence_type:
                 if target_metric is None or target_metric == "f1":
@@ -186,7 +186,7 @@ def create_len_ablation_table(test_model_name, format="mult", data_version=""):
                                                   is_ablation=True)
             
             # Combine results
-            if normal_row and ablation_row:
+            if normal_row or ablation_row:
                 combined_row = {"metric": target_metric, "task": task_type}
                 
                 # Add HPC from normal results
