@@ -100,6 +100,132 @@ def create_acc_table(test_model_name, format="mult", data_version=""):
         table.add_row(row)
     print(table)
 
+def create_len_ablation_row(test_model_name, task_type, data_version="", format="mult", target_metric=None, is_ablation=False):
+    """
+    Load the evaluation result for length ablation, handling both normal and ablation files
+    """
+    if format != "mult" or task_type == "KFextract":
+        return {}  # Length ablation only for multiple choice format
+    
+    if is_ablation:
+        # Load length ablation file
+        data_path = os.path.join(os.environ["base_dir"], "output", "metrics_mult", 
+                                f"{test_model_name}_{task_type}_{data_version}_choice_len_ablation.jsonl")
+    else:
+        # Load normal file
+        data_path = os.path.join(os.environ["base_dir"], "output", "metrics_mult", 
+                                f"{test_model_name}_{task_type}_{data_version}_choice.jsonl")
+    
+    try:
+        dataset = load_dataset("json", data_files=data_path)["train"]
+    except:
+        print("No such data.", data_path)
+        return {}
+
+    # For each evidence type, compute metrics
+    row = {"metric": target_metric}
+    overall_metrics = []
+    
+    # For ablation files, only process HPC (which will be renamed to HPC-double)
+    # For normal files, process HPC and HPCE
+    if is_ablation:
+        evidence_types = ["HPC"]
+    else:
+        evidence_types = ["HPC", "HPCE"]
+    
+    for evidence_type in evidence_types:
+        metrics = []
+        for instance in dataset:
+            if instance["context_type"] == evidence_type:
+                if target_metric is None or target_metric == "f1":
+                    metrics.append(instance["metrics"]["f1"])
+                else:
+                    metrics.append(instance["metrics"][target_metric])
+        
+        # Rename HPC to HPC-double for ablation files
+        col_name = "HPC-double" if (is_ablation and evidence_type == "HPC") else evidence_type
+        
+        if metrics:
+            row[col_name] = sum(metrics) / len(metrics) * 100
+            row[f"{col_name}_std"] = (
+                statistics.stdev(metrics) * 100 if len(metrics) > 1 else 0.0
+            )
+            row[f"{col_name}_sem"] = (
+                statistics.stdev(metrics) * 100 / math.sqrt(len(metrics)) if len(metrics) > 1 else 0.0
+            )
+            overall_metrics += metrics
+    
+    if overall_metrics:
+        row["Overall"] = sum(overall_metrics) / len(overall_metrics) * 100
+    
+    return row
+
+def create_len_ablation_table(test_model_name, format="mult", data_version=""):
+    """
+    Create table combining HPC (normal), HPC-double (from length ablation), and HPCE results
+    """
+    if format != "mult":
+        print("Length ablation only supported for multiple choice format")
+        return
+    
+    tab = []
+    for task_type in ["CK", "PK", "PCK", "RAG"]:
+        for target_metric in ["f1", "exact_match"]:
+            # Get normal results (HPC and HPCE)
+            normal_row = create_len_ablation_row(test_model_name, task_type, 
+                                               data_version=data_version, 
+                                               target_metric=target_metric, 
+                                               format=format, 
+                                               is_ablation=False)
+            
+            # Get ablation results (HPC-double)
+            ablation_row = create_len_ablation_row(test_model_name, task_type, 
+                                                  data_version=data_version, 
+                                                  target_metric=target_metric, 
+                                                  format=format, 
+                                                  is_ablation=True)
+            
+            # Combine results
+            if normal_row and ablation_row:
+                combined_row = {"metric": target_metric, "task": task_type}
+                
+                # Add HPC from normal results
+                if "HPC" in normal_row:
+                    combined_row["HPC"] = normal_row["HPC"]
+                    combined_row["HPC_std"] = normal_row["HPC_std"]
+                    combined_row["HPC_sem"] = normal_row["HPC_sem"]
+                
+                # Add HPC-double from ablation results
+                if "HPC-double" in ablation_row:
+                    combined_row["HPC-double"] = ablation_row["HPC-double"]
+                    combined_row["HPC-double_std"] = ablation_row["HPC-double_std"]
+                    combined_row["HPC-double_sem"] = ablation_row["HPC-double_sem"]
+                
+                # Add HPCE from normal results
+                if "HPCE" in normal_row:
+                    combined_row["HPCE"] = normal_row["HPCE"]
+                    combined_row["HPCE_std"] = normal_row["HPCE_std"]
+                    combined_row["HPCE_sem"] = normal_row["HPCE_sem"]
+                
+                tab.append(combined_row)
+    
+    if tab:
+        df = pd.DataFrame(tab)
+        
+        # Save to CSV
+        output_path = os.path.join(os.environ['base_dir'], "results", 
+                                 f"{test_model_name}_{data_version}_{format}_perf_len_ablation.csv")
+        df.to_csv(output_path, index=False)
+        print(f"Length ablation results saved to: {output_path}")
+        
+        # Display with PrettyTable
+        table = PrettyTable()
+        table.field_names = df.columns.tolist()
+        
+        for row in df.itertuples(index=False):
+            table.add_row(row)
+        print(table)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required positional argument
@@ -107,7 +233,11 @@ if __name__ == "__main__":
                             help='name of a dataset')
     parser.add_argument('--data_version', type=str, default="full_v2", help='The version of the dataset to be generated.')
     parser.add_argument('--format', type=str, default="mult", help='multiple choice (mult) or free generation (free)')
+    parser.add_argument('--len_ablation', action='store_true', help='Aggregate length ablation results')
     args = parser.parse_args()
     data_version = args.data_version
     
-    create_acc_table(args.test_model_name, format=args.format, data_version=data_version)
+    if args.len_ablation:
+        create_len_ablation_table(args.test_model_name, format=args.format, data_version=data_version)
+    else:
+        create_acc_table(args.test_model_name, format=args.format, data_version=data_version)

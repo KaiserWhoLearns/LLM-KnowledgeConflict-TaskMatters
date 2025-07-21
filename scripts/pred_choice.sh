@@ -2,8 +2,8 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="allenai/OLMo-2-1124-7B-Instruct"
-export task_type="CK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
+export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
+export task_type="PK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
 export data_version="full_v2"
 export length_ablation=true # Set to true for length ablation experiments
 

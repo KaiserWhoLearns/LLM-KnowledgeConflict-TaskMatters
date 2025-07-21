@@ -74,8 +74,8 @@ if __name__ == "__main__":
     data_version = args.data_version
     model_name = args.test_model_name
     print("Loading Model...")
-    model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto")
-    tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto", torch_dtype="auto")
+    tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True)
 
     print("Successfully load model. Loading Generator...")
     generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
