@@ -112,19 +112,18 @@ for ax, t in zip(axes, tasks):
     ax.set_title(pretty_tasks[t], fontsize=20, pad=6)
     ax.set_xlabel('')
     ax.set_ylabel('')
-    ax.tick_params(axis='x', rotation=0, labelsize=10)
+    ax.tick_params(axis='x', rotation=0, labelsize=11)
 
 # Single shared legend
 handles, labels = axes[0].get_legend_handles_labels()
 leg = fig.legend(
     handles, labels, 
-    title='Context',
-    loc='upper right', 
-    bbox_to_anchor=(0.98, 0.95),
+    loc='lower right',
+    bbox_to_anchor=(0.98, 0.3),
     frameon=True,
-    prop={'size': 14}
+    prop={'size': 12}
 )
-leg.get_title().set_fontsize(18)
+leg.get_title().set_fontsize(12)
 
 # Remove individual legends
 for ax in axes:
@@ -132,9 +131,9 @@ for ax in axes:
 
 # Add shared y-label
 fig.text(0.04, 0.5, 'Performance', 
-         va='center', rotation='vertical', fontsize=19)
+         va='center', rotation='vertical', fontsize=17)
 
-fig.tight_layout(rect=[0.05, 0, 1, 0.92])
+fig.tight_layout(rect=[0.05, 0.12, 1, 1])
 
 # Save figure
 output_dir = os.path.join(os.environ['base_dir'], "results", "figures")

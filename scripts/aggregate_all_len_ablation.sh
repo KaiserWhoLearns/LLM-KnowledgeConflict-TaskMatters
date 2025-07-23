@@ -27,7 +27,6 @@ for model in "${models[@]}"; do
         --data_version "$data_version" \
         --format "$format" \
         --len_ablation
-    
     if [ $? -eq 0 ]; then
         echo "✓ Successfully processed $model"
     else

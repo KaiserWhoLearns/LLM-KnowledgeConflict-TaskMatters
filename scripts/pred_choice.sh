@@ -2,7 +2,7 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-7B-Instruct-1M"
+export model_name="Qwen/Qwen2.5-14B-Instruct"
 export task_type="PK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
 export data_version="full_v2"
 export length_ablation=true # Set to true for length ablation experiments
@@ -53,7 +53,7 @@ sbatch <<EOT
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
-#SBATCH --gpus=1
+#SBATCH --gpus=2
 #SBATCH --time=2-15:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
