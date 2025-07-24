@@ -421,7 +421,7 @@ def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str
     # Create stacked bars for HPC
     p1_hpc = ax.bar(x - width, hpc_nc_only, width, label='NC Only', color=nc_color)
     p2_hpc = ax.bar(x - width, hpc_only, width, bottom=hpc_nc_only, 
-                    label='HPC Only', color=hpc_color)
+                    label='PC Only', color=hpc_color)
     
     # Create stacked bars for HPC double (middle position)
     p1_hpc_double = ax.bar(x, hpc_double_nc_only, width, color=nc_color)
@@ -494,6 +494,140 @@ def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str
     plt.close()
 
 
+def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "results/figures"):
+    """
+    Create three pie charts showing the percentage of NC Only, PC Only, and both wrong instances
+    averaged across models for HPC, HPCdub, and HPCE.
+    
+    Args:
+        results: Dictionary mapping model names to error statistics
+        output_dir: Directory to save the figure
+    """
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Initialize accumulators for each context type
+    hpc_totals = {'nc_only': 0, 'pc_only': 0, 'both_wrong': 0}
+    hpcdub_totals = {'nc_only': 0, 'pc_only': 0, 'both_wrong': 0}
+    hpce_totals = {'nc_only': 0, 'pc_only': 0, 'both_wrong': 0}
+    
+    n_models = len(results)
+    
+    # Aggregate data across all models
+    for model, stats in results.items():
+        # HPC data
+        if stats['total_hpc'] > 0:
+            # Calculate percentages excluding both_correct
+            nc_only = stats['hpc_nc_correct_hpc_wrong']
+            pc_only = stats['hpc_hpc_correct_nc_wrong']
+            both_wrong = stats['hpc_both_wrong']
+            total_errors = nc_only + pc_only + both_wrong
+            
+            if total_errors > 0:
+                hpc_totals['nc_only'] += (nc_only / total_errors)
+                hpc_totals['pc_only'] += (pc_only / total_errors)
+                hpc_totals['both_wrong'] += (both_wrong / total_errors)
+        
+        # HPC double data
+        if stats.get('total_hpc_double', 0) > 0:
+            nc_only = stats['hpc_double_nc_correct_hpc_wrong']
+            pc_only = stats['hpc_double_hpc_correct_nc_wrong']
+            both_wrong = stats['hpc_double_both_wrong']
+            total_errors = nc_only + pc_only + both_wrong
+            
+            if total_errors > 0:
+                hpcdub_totals['nc_only'] += (nc_only / total_errors)
+                hpcdub_totals['pc_only'] += (pc_only / total_errors)
+                hpcdub_totals['both_wrong'] += (both_wrong / total_errors)
+        
+        # HPCE data
+        if stats['total_hpce'] > 0:
+            nc_only = stats['hpce_nc_correct_hpce_wrong']
+            pc_only = stats['hpce_hpce_correct_nc_wrong']
+            both_wrong = stats['hpce_both_wrong']
+            total_errors = nc_only + pc_only + both_wrong
+            
+            if total_errors > 0:
+                hpce_totals['nc_only'] += (nc_only / total_errors)
+                hpce_totals['pc_only'] += (pc_only / total_errors)
+                hpce_totals['both_wrong'] += (both_wrong / total_errors)
+    
+    # Calculate averages
+    for totals in [hpc_totals, hpcdub_totals, hpce_totals]:
+        for key in totals:
+            totals[key] = (totals[key] / n_models) * 100  # Convert to percentage
+    
+    # Create figure with three subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 6))
+    
+    # Colors for the pie slices (excluding the light blue for Both Correct)
+    colors = ['#4477AA', '#CC6677', '#DDCC77']  # Blue, Pink/Rose, Yellow
+    
+    # Function to create a pie chart
+    def make_pie(ax, data, title):
+        labels = ['', '', '']  # Empty labels for individual pies
+        sizes = [data['nc_only'], data['pc_only'], data['both_wrong']]
+        
+        # Create pie chart
+        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%',
+                                          startangle=90, textprops={'fontsize': 18})
+        
+        # Enhance text appearance
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_weight('bold')
+            autotext.set_fontsize(20)
+        
+        # Add title immediately below the pie
+        ax.text(0.5, 0.05, title, fontsize=20, ha='center', transform=ax.transAxes)
+        
+        # Equal aspect ratio ensures that pie is drawn as a circle
+        ax.axis('equal')
+    
+    # Create the three pie charts
+    make_pie(ax1, hpc_totals, 'HPC')
+    make_pie(ax2, hpcdub_totals, 'HPCdub')
+    make_pie(ax3, hpce_totals, 'HPCE')
+    
+    # Create a single legend centered below the pies
+    legend_labels = ['NC Only', 'PC Only', 'Both Wrong']
+    legend_elements = [plt.Rectangle((0,0),1,1, facecolor=colors[i]) for i in range(3)]
+    fig.legend(legend_elements, legend_labels, loc='lower center', fontsize=20, 
+               bbox_to_anchor=(0.5, 0.04), ncol=3, frameon=False)
+    
+    # Adjust layout
+    plt.subplots_adjust(bottom=0.15, top=0.95, left=0.05, right=0.95)
+    
+    # Save figure
+    output_path = os.path.join(output_dir, 'rag_error_pie_charts.png')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"\nPie charts saved to: {output_path}")
+    
+    # Also save as PDF
+    output_path_pdf = os.path.join(output_dir, 'rag_error_pie_charts.pdf')
+    plt.savefig(output_path_pdf, bbox_inches='tight')
+    print(f"Pie charts also saved as PDF: {output_path_pdf}")
+    
+    plt.close()
+    
+    # Print the averaged percentages
+    print("\nAveraged percentages across all models (excluding Both Correct):")
+    print("\nHPC:")
+    print(f"  NC Only: {hpc_totals['nc_only']:.1f}%")
+    print(f"  PC Only: {hpc_totals['pc_only']:.1f}%")
+    print(f"  Both Wrong: {hpc_totals['both_wrong']:.1f}%")
+    
+    print("\nHPCdub:")
+    print(f"  NC Only: {hpcdub_totals['nc_only']:.1f}%")
+    print(f"  PC Only: {hpcdub_totals['pc_only']:.1f}%")
+    print(f"  Both Wrong: {hpcdub_totals['both_wrong']:.1f}%")
+    
+    print("\nHPCE:")
+    print(f"  NC Only: {hpce_totals['nc_only']:.1f}%")
+    print(f"  PC Only: {hpce_totals['pc_only']:.1f}%")
+    print(f"  Both Wrong: {hpce_totals['both_wrong']:.1f}%")
+
+
 if __name__ == "__main__":
     # Analyze all models
     results = analyze_all_models()
@@ -506,3 +640,6 @@ if __name__ == "__main__":
     
     # Create visualization
     visualize_error_analysis(results)
+    
+    # Create pie charts
+    create_pie_charts(results)
