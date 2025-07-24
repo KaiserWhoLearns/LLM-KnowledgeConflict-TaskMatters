@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output", include_len_ablation: bool = True) -> Dict[str, int]:
+def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output", include_len_ablation: bool = True, task: str = "RAG") -> Dict[str, int]:
     """
-    Count error types for RAG tasks by comparing predictions with correct answers.
+    Count error types for RAG/PCK tasks by comparing predictions with correct answers.
     
     For each context type (NC, HPC, HPCE, HPC double), we track:
     1. Get NC part correct but HPC/HPCE part wrong
@@ -19,6 +19,7 @@ def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun7
         model_name: Name of the model (e.g., "mistral7B", "olmo2-7B")
         base_dir: Base directory containing output files
         include_len_ablation: Whether to include HPC double from len_ablation files
+        task: Task type, either "RAG" or "PCK"
         
     Returns:
         Dictionary with error counts by type
@@ -52,10 +53,10 @@ def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun7
     }
     
     # Read predictions from metrics_mult
-    predictions_file = os.path.join(base_dir, "metrics_mult", f"{model_name}_RAG_full_v2_choice.jsonl")
+    predictions_file = os.path.join(base_dir, "metrics_mult", f"{model_name}_{task}_full_v2_choice.jsonl")
     
-    # Read ground truth from model RAG file
-    ground_truth_file = os.path.join(base_dir, f"{model_name}_RAG_full_v2_choice.jsonl")
+    # Read ground truth from model task file
+    ground_truth_file = os.path.join(base_dir, f"{model_name}_{task}_full_v2_choice.jsonl")
     
     # Load ground truth data
     ground_truth = {}
@@ -138,8 +139,8 @@ def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun7
     
     # Process len_ablation file for HPC double
     if include_len_ablation:
-        len_ablation_predictions_file = os.path.join(base_dir, "metrics_mult", f"{model_name}_RAG_full_v2_choice_len_ablation.jsonl")
-        len_ablation_ground_truth_file = os.path.join(base_dir, f"{model_name}_RAG_full_v2_choice_len_ablation.jsonl")
+        len_ablation_predictions_file = os.path.join(base_dir, "metrics_mult", f"{model_name}_{task}_full_v2_choice_len_ablation.jsonl")
+        len_ablation_ground_truth_file = os.path.join(base_dir, f"{model_name}_{task}_full_v2_choice_len_ablation.jsonl")
         
         # Check if len_ablation files exist
         if os.path.exists(len_ablation_predictions_file) and os.path.exists(len_ablation_ground_truth_file):
@@ -188,44 +189,46 @@ def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun7
     return stats
 
 
-def analyze_all_models(base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output") -> Dict[str, Dict[str, int]]:
+def analyze_all_models(base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output", task: str = "RAG") -> Dict[str, Dict[str, int]]:
     """
-    Analyze error types for all models with RAG results.
+    Analyze error types for all models with RAG/PCK results.
     
     Args:
         base_dir: Base directory containing output files
+        task: Task type, either "RAG" or "PCK"
         
     Returns:
         Dictionary mapping model names to their error statistics
     """
-    # Find all models with RAG results
+    # Find all models with task results
     metrics_dir = os.path.join(base_dir, "metrics_mult")
     models = set()
     
     for filename in os.listdir(metrics_dir):
-        if filename.endswith("_RAG_full_v2_choice.jsonl") and not filename.endswith("_len_ablation.jsonl"):
-            model_name = filename.replace("_RAG_full_v2_choice.jsonl", "")
+        if filename.endswith(f"_{task}_full_v2_choice.jsonl") and not filename.endswith("_len_ablation.jsonl"):
+            model_name = filename.replace(f"_{task}_full_v2_choice.jsonl", "")
             models.add(model_name)
     
     # Analyze each model
     results = {}
     for model in sorted(models):
         try:
-            results[model] = count_error_types(model, base_dir)
+            results[model] = count_error_types(model, base_dir, task=task)
         except Exception as e:
             print(f"Error processing {model}: {e}")
     
     return results
 
 
-def print_error_analysis(results: Dict[str, Dict[str, int]]):
+def print_error_analysis(results: Dict[str, Dict[str, int]], task: str = "RAG"):
     """
     Print formatted error analysis results.
     
     Args:
         results: Dictionary mapping model names to error statistics
+        task: Task type, either "RAG" or "PCK"
     """
-    print("\nRAG Task Error Analysis")
+    print(f"\n{task} Task Error Analysis")
     print("="*80)
     
     for model, stats in results.items():
@@ -318,7 +321,7 @@ def print_error_table(results: Dict[str, Dict[str, int]]):
         print()  # Empty line between models
 
 
-def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str = "results/figures"):
+def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str = "results/figures", task: str = "RAG"):
     """
     Create a stacked percentage bar plot for error analysis showing only NC Only and HPC/HPCE Only.
     Now includes HPC, HPCE, and HPC double bars.
@@ -326,6 +329,7 @@ def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str
     Args:
         results: Dictionary mapping model names to error statistics
         output_dir: Directory to save the figure
+        task: Task type, either "RAG" or "PCK"
     """
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -481,20 +485,15 @@ def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str
     # Adjust layout
     plt.tight_layout()
     
-    # Save figure
-    output_path = os.path.join(output_dir, 'rag_error_analysis.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"\nFigure saved to: {output_path}")
-    
-    # Also save as PDF
-    output_path_pdf = os.path.join(output_dir, 'rag_error_analysis.pdf')
+    # Save as PDF
+    output_path_pdf = os.path.join(output_dir, f'{task.lower()}_error_analysis.pdf')
     plt.savefig(output_path_pdf, bbox_inches='tight')
     print(f"Figure also saved as PDF: {output_path_pdf}")
     
     plt.close()
 
 
-def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "results/figures"):
+def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "results/figures", task: str = "RAG"):
     """
     Create three pie charts showing the percentage of NC Only, PC Only, and both wrong instances
     averaged across models for HPC, HPCdub, and HPCE.
@@ -502,6 +501,7 @@ def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "res
     Args:
         results: Dictionary mapping model names to error statistics
         output_dir: Directory to save the figure
+        task: Task type, either "RAG" or "PCK"
     """
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -598,13 +598,8 @@ def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "res
     # Adjust layout
     plt.subplots_adjust(bottom=0.15, top=0.95, left=0.05, right=0.95)
     
-    # Save figure
-    output_path = os.path.join(output_dir, 'rag_error_pie_charts.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"\nPie charts saved to: {output_path}")
-    
-    # Also save as PDF
-    output_path_pdf = os.path.join(output_dir, 'rag_error_pie_charts.pdf')
+    # Save as PDF
+    output_path_pdf = os.path.join(output_dir, f'{task.lower()}_error_pie_charts.pdf')
     plt.savefig(output_path_pdf, bbox_inches='tight')
     print(f"Pie charts also saved as PDF: {output_path_pdf}")
     
@@ -629,17 +624,22 @@ def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "res
 
 
 if __name__ == "__main__":
+    import sys
+    
+    # Get task type from command line argument, default to RAG
+    task = sys.argv[1] if len(sys.argv) > 1 else "RAG"
+    
     # Analyze all models
-    results = analyze_all_models()
+    results = analyze_all_models(task=task)
     
     # Print results
-    print_error_analysis(results)
+    print_error_analysis(results, task=task)
     
     # Print table
     print_error_table(results)
     
     # Create visualization
-    visualize_error_analysis(results)
+    visualize_error_analysis(results, task=task)
     
     # Create pie charts
-    create_pie_charts(results)
+    create_pie_charts(results, task=task)
