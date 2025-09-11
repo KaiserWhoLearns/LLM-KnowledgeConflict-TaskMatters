@@ -5,6 +5,8 @@ export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 export model_name="Qwen/Qwen2.5-14B-Instruct"
 # export task_type="RAG"
 export data_version="full_v2"
+export length_ablation=false # Set to true for length ablation experiments
+export prompt_ablation=true # Set to true for prompt ablation experiments (creates all: weak, neutral, strong)
 
 # declare -A TASK_TYPE_PRETTY
 # TASK_TYPE_PRETTY["KFsummary"]="knowledge_free_summary"
@@ -26,6 +28,12 @@ MODEL_NAME_TO_PRETTY["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]="deepseek-llama
 
 export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-add-instruct"
 echo "Running $exp_name"
+
+# Check mutual exclusion
+if [ "$length_ablation" = true ] && [ "$prompt_ablation" = true ]; then
+    echo "Error: length_ablation and prompt_ablation cannot both be true"
+    exit 1
+fi
 
 export BNB_CUDA_VERSION=118
 
@@ -56,16 +64,28 @@ conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
 
-# python data_creation/add_instruction.py \
-#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-#     --data_version $data_version
-
-# python data_creation/add_instruction_choice.py \
-#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-#     --data_version $data_version
-
-python data_creation/length_ablation.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
+# Determine which script to run based on ablation settings
+if [ "$length_ablation" = true ]; then
+    echo "Running length ablation experiments"
+    python data_creation/length_ablation.py \
+        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+        --data_version $data_version
+elif [ "$prompt_ablation" = true ]; then
+    echo "Running prompt ablation experiments for all strength levels"
+    # Run for all prompt types: weak, neutral, strong
+    for prompt_strength in weak neutral strong; do
+        echo "Creating data with \$prompt_strength prompts"
+        python data_creation/prompt_ablation.py \
+            --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+            --data_version $data_version \
+            --prompt_type \$prompt_strength \
+            --task_type all
+    done
+else
+    echo "Running standard instruction addition"
+    python data_creation/add_instruction_choice.py \
+        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+        --data_version $data_version
+fi
 
 EOT
