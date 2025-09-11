@@ -33,10 +33,11 @@ for name, df in [('OLMo2-7B', perf_olmo),
                  ('Qwen-7B', perf_qwen), 
                  ('OLMo2-13B', perf_olmo13B), 
                  ('Qwen-14B', perf_qwen14B)]:
-    # Use F1 for PCK tasks, exact_match for others
+    # Use F1 for PCK and RAG tasks, exact_match for others
     tmp_pck = df[(df['metric'] == 'f1') & (df['task'] == 'PCK')].copy()
-    tmp_others = df[(df['metric'] == 'exact_match') & (df['task'] != 'PCK')].copy()
-    tmp = pd.concat([tmp_pck, tmp_others], ignore_index=True)
+    tmp_rag = df[(df['metric'] == 'f1') & (df['task'] == 'RAG')].copy()
+    tmp_others = df[(df['metric'] == 'exact_match') & (df['task'] != 'PCK') & (df['task'] != 'RAG')].copy()
+    tmp = pd.concat([tmp_pck, tmp_rag, tmp_others], ignore_index=True)
     tmp['model'] = name
     dfs.append(tmp)
 
@@ -68,11 +69,12 @@ PALETTE = {'HPC': set2[1], 'HPC-double': set2[2], 'HPCE': set2[3]}
 HUE_ORDER = evidence_cols
 
 # Create figure with subplots for different tasks
-tasks = ["CK", "PK", "PCK"]
+tasks = ["CK", "PK", "PCK", "RAG"]
 pretty_tasks = {
     "CK": 'Contextual Knowledge', 
     "PK": 'Parametric Knowledge', 
-    "PCK": 'Parametric-Contextual'
+    "PCK": 'Parametric-Contextual',
+    "RAG": 'RAG'
 }
 n_tasks = len(tasks)
 
