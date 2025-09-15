@@ -68,18 +68,38 @@ def eval_PKCK(prediction, answer):
     return {"f1": f1_score_per_instance(prediction, answer), "exact_match": int(set(prediction) == set(answer))}
 
 def extract_choices(text):
-    # Match patterns like (A), ( AB), ( AC ), A., B., etc.
-    pattern = r'\(\s*([A-D](?:\s*[A-D])*)\s*\)'
-    matches = re.findall(pattern, text)
-
+    # Match multiple patterns:
+    # 1. Parentheses: (A), ( AB), ( AC )
+    # 2. Letter with period: A., B., C., D.
+    # 3. Letter with period and word: A.word, B.something, D.Fishing
+    
     results = []
-    for match in matches:
+    
+    # Pattern 1: Match patterns like (A), ( AB), ( AC )
+    paren_pattern = r'\(\s*([A-D](?:\s*[A-D])*)\s*\)'
+    paren_matches = re.findall(paren_pattern, text)
+    
+    for match in paren_matches:
         # Split by whitespace to handle things like "A B" or "AC"
         letters = re.findall(r'[A-D]', match)
         if letters:
             results += letters
     
-    return results
+    # Pattern 2 & 3: Match A., B., C., D. or A.word, B.something, D.Fishing
+    # Look for capital letters A-D followed by a period (and optionally a word)
+    period_pattern = r'\b([A-D])\.(?:\w+)?'
+    period_matches = re.findall(period_pattern, text)
+    results += period_matches
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_results = []
+    for item in results:
+        if item not in seen:
+            seen.add(item)
+            unique_results.append(item)
+    
+    return unique_results
 
 
 def evaluate_full(orig_path, dataset):
@@ -95,6 +115,7 @@ def evaluate_full(orig_path, dataset):
 
         # Parse for prediction
         pred = extract_choices(instance["pred"])
+        # pdb.set_trace()
         cleaned_pred.append(pred)
         # Convert answers into list
         answers = list(instance["output"])
@@ -103,6 +124,7 @@ def evaluate_full(orig_path, dataset):
             print("Error: No question is contained in this example. Input = ", instance["input"])
         metrics.append(eval_PKCK(prediction=pred, answer=answers))
 
+    print(metrics)
     dataset = dataset.add_column("metrics", metrics)
     dataset = dataset.add_column("cleaned_pred", cleaned_pred)
     dataset = dataset.add_column("question", questions)

@@ -2,7 +2,7 @@
 export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
-export model_name="Qwen/Qwen2.5-14B-Instruct"
+export model_name="mistralai/Mistral-7B-Instruct-v0.3"
 export task_type="CK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
 export data_version="full_v2"
 export length_ablation=false # Set to true for length ablation experiments
@@ -64,7 +64,7 @@ sbatch <<EOT
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
-#SBATCH --gpus=2
+#SBATCH --gpus=0
 #SBATCH --time=2-15:00:00 # Max runtime in DD-HH:MM:SS format.
 #SBATCH --chdir=${BASE_DIR}
 #SBATCH --export=all
@@ -104,13 +104,13 @@ elif [ "$prompt_ablation" = true ]; then
         export data_path="\${data_path_base}_\${task_type}_\${prompt_strength}.jsonl"
         export save_path="\${save_path_base}_\${prompt_strength}.jsonl"
         
-        python model_runs/predict.py \
-            --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-            --data_version $data_version \
-            --task_type $task_type \
-            --mult_choice \
-            --data_path "\$data_path" \
-            --save_dir "\$save_path"
+        # python model_runs/predict.py \
+        #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+        #     --data_version $data_version \
+        #     --task_type $task_type \
+        #     --mult_choice \
+        #     --data_path "\$data_path" \
+        #     --save_dir "\$save_path"
         
         echo "Evaluating \$prompt_strength predictions"
         python model_runs/evaluate_choice.py \
