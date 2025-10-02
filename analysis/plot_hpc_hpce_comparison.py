@@ -69,7 +69,7 @@ PALETTE = {'HPC': set2[1], 'HPC-double': set2[2], 'HPCE': set2[3]}
 HUE_ORDER = evidence_cols
 
 # Create figure with subplots for different tasks
-tasks = ["CK", "PK", "PCK", "RAG"]
+tasks = ["CK", "PK", "PCK"]
 pretty_tasks = {
     "CK": 'Contextual Knowledge', 
     "PK": 'Parametric Knowledge', 
@@ -96,7 +96,6 @@ for ax, t in zip(axes, tasks):
         hue_order=HUE_ORDER,
         palette=PALETTE,
         width=0.65, 
-        edgecolor='black',
         errorbar=None
     )
 
