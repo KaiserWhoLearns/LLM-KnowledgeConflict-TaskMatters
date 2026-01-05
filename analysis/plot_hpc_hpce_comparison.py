@@ -64,9 +64,8 @@ long_sem['evidence'] = long_sem['evidence'].str.replace('_sem', '', regex=False)
 long = long_mean.merge(long_sem, on=['model', 'task', 'metric', 'evidence'])
 
 # Define consistent color palette
-set2 = sns.color_palette('Set2', 4)
-PALETTE = {'HPC': set2[1], 'HPC-double': set2[2], 'HPCE': set2[3]}
-HUE_ORDER = evidence_cols
+PALETTE   = {'NC': '#fdb731', 'HPC': '#ff6363', 'LPC': '#6cd9f9', 'HPCE': '#00c9a7', 'HPC-double': '#F2E2BA'}
+HUE_ORDER    = evidence_cols       
 
 # Create figure with subplots for different tasks
 tasks = ["CK", "PK", "PCK"]
