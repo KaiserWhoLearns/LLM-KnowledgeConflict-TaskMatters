@@ -116,8 +116,9 @@ for ax, t in zip(axes, tasks):
 
 # Single shared legend
 handles, labels = axes[0].get_legend_handles_labels()
+labels = ['HPCdub' if l == 'HPC-double' else l for l in labels]
 leg = fig.legend(
-    handles, labels, 
+    handles, labels,
     loc='lower right',
     bbox_to_anchor=(0.98, 0.3),
     frameon=True,
