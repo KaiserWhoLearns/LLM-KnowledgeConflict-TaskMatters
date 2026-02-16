@@ -50,17 +50,28 @@ def is_valid(context, question, answer, checker="openai"):
         )
         response = completion.choices[0].message.content
     else:
-        response = together_client.chat.completions.create(
-            model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
-            messages=[{"role": "user", "content": prompt}],
-        ).choices[0].message.content
-
-        # Strip off the think content
         try:
-            response = response.split("</think>")[1]
-        except:
-            # Unjudgable instance, model does not think
-            return False
+            response = together_client.chat.completions.create(
+                model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+                messages=[{"role": "user", "content": prompt}],
+            ).choices[0].message.content
+
+            # Strip off the think content
+            try:
+                response = response.split("</think>")[1]
+            except:
+                # Unjudgable instance, model does not think
+                return False
+        except Exception as e:
+            print(f"Together API error: {e}. Falling back to OpenAI.", file=sys.stderr)
+            completion = openai_client.chat.completions.create(
+                model=EDITOR_MODEL_NAME,
+                messages=[
+                    {"role": "developer", "content": ""},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            response = completion.choices[0].message.content
 
     # # Uncomment for debugging mode
     # if "entailment" not in response.lower():
