@@ -5,6 +5,7 @@ export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 export model_name="gpt-5.2"
 # export model_name="Qwen/Qwen2.5-14B-Instruct"
 data_version="full_v2"
+sample_fraction="0.1"
 
 declare -A MODEL_NAME_TO_PRETTY
 # No examples captured for Gemma3-4b
@@ -59,15 +60,24 @@ module load anaconda3
 conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 cd $base_dir
 
+# Saves to: data/final_data/{model_name}_{data_version}.jsonl
 python data_creation/clas_edit_context.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
+    --data_version $data_version \
+    --sample_fraction $sample_fraction
 
+# Saves to: data/final_data_filtered/{model_name}_{data_version}.jsonl
 python data_creation/remove_invalid_instances.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
     --data_version $data_version
 
+# Saves to: data/task_data/{model_name}_knowledge_free_extract_{data_version}.jsonl (and other task variants)
 python data_creation/add_instruction.py \
+    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --data_version $data_version
+
+# Saves to: data/choice_task/{model_name}_{task_type}_{data_version}.jsonl
+python data_creation/add_instruction_choice.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
     --data_version $data_version
 
@@ -98,16 +108,24 @@ conda activate /scratch4/mdredze1/hsun74/conda_env/kc
 # source "/home/hsun74/.bashrc"
 cd $base_dir
 
+# Saves to: data/final_data/{model_name}_{data_version}.jsonl
 python data_creation/clas_edit_context.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
     --data_version $data_version \
-    --use_batch
+    $sample_flag
 
+# Saves to: data/final_data_filtered/{model_name}_{data_version}.jsonl
 python data_creation/remove_invalid_instances.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
     --data_version $data_version
 
+# Saves to: data/task_data/{model_name}_knowledge_free_extract_{data_version}.jsonl (and other task variants)
 python data_creation/add_instruction.py \
+    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+    --data_version $data_version
+
+# Saves to: data/choice_task/{model_name}_{task_type}_{data_version}.jsonl
+python data_creation/add_instruction_choice.py \
     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
     --data_version $data_version
 

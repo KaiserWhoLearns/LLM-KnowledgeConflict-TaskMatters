@@ -6,6 +6,7 @@ sys.path.append(os.getcwd())
 import argparse
 from datasets import load_dataset, Dataset
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+from openai import OpenAI
 from tqdm import tqdm
 from dotenv import load_dotenv
 
@@ -22,7 +23,39 @@ PRETTY_TO_MODEL_NAME = {
     "olmo2-13B": "allenai/OLMo-2-1124-13B-Instruct"
 }
 
+# API-based models (called via OpenAI API, not loaded locally)
+API_MODELS = {
+    "gpt5.2": "gpt-5.2",
+}
+
 CONTEXT_TYPES = ["NC", "HPC", "HPCE", "LPC"]
+
+def generate_text_for_dataset_api(dataset, task, client, api_model_name, max_length=150):
+    """
+    Generate predictions using the OpenAI API for API-based models (e.g. GPT-5.2).
+    """
+    generated_texts = []
+    for entry in tqdm(dataset):
+        for context_type in CONTEXT_TYPES:
+            try:
+                input_text = entry[f"{context_type}_{task}_input"]
+                completion = client.chat.completions.create(
+                    model=api_model_name,
+                    messages=[{"role": "user", "content": input_text}],
+                    max_completion_tokens=max_length,
+                )
+                pred = completion.choices[0].message.content.strip()
+                generated_texts.append({
+                    "input": entry[f"{context_type}_{task}_input"],
+                    "output": entry[f"{context_type}_{task}_output"],
+                    "pred": pred,
+                    "context_type": context_type,
+                    "task_type": task
+                })
+            except Exception as e:
+                print(f"API error for {context_type}_{task}: {e}")
+    return Dataset.from_list(generated_texts)
+
 def generate_text_for_dataset(dataset, task, generator, max_length=150, eos=None):
     """
     task = {KF, CK, PK}
@@ -73,12 +106,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_version = args.data_version
     model_name = args.test_model_name
-    print("Loading Model...")
-    model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto", torch_dtype="auto")
-    tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True)
 
-    print("Successfully load model. Loading Generator...")
-    generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
+    is_api_model = model_name in API_MODELS
+
+    if is_api_model:
+        print(f"Using API model: {API_MODELS[model_name]}")
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+        client = OpenAI(api_key=OPENAI_API_KEY)
+    else:
+        print("Loading Model...")
+        model = AutoModelForCausalLM.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True, device_map="auto", torch_dtype="auto")
+        tokenizer = AutoTokenizer.from_pretrained(PRETTY_TO_MODEL_NAME[model_name], use_auth_token=True)
+        print("Successfully load model. Loading Generator...")
+        generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
     # Load the corresponding data
     if args.mult_choice:
@@ -106,7 +146,9 @@ if __name__ == "__main__":
         dataset = dataset.shuffle(seed=42).select(range(10))
 
     # run prediction
-    if "KF" not in args.task_type:
+    if is_api_model:
+        pred_res = generate_text_for_dataset_api(dataset, task=args.task_type, client=client, api_model_name=API_MODELS[model_name], max_length=100)
+    elif "KF" not in args.task_type:
         pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100, eos="</answer>")
     else:
         pred_res = generate_text_for_dataset(dataset, task=args.task_type, generator=generator, max_length=100)

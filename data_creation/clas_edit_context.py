@@ -189,7 +189,9 @@ def query_whole_dataset(dataset, prompts, context, context_type):
         # Avoid checking Exp score, By default generating explanations for all instance
         key_field = "HPCE"
         dataset = dataset.remove_columns(["HPCE_context", "HPCE_answer"])
-    for instance, prompt, context in zip(dataset, prompts, input_context):
+    total = len(prompts)
+    print(f"[{context_type}] Starting OpenAI queries for {total} instances...", flush=True)
+    for i, (instance, prompt, context) in enumerate(zip(dataset, prompts, input_context)):
         completion = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -218,6 +220,8 @@ def query_whole_dataset(dataset, prompts, context, context_type):
             new_answer = instance["alt_answer"]
         output_contexts.append(edited_passage)
         output_answers.append(new_answer)
+        if (i + 1) % 50 == 0 or (i + 1) == total:
+            print(f"[{context_type}] Progress: {i + 1}/{total} ({(i + 1) / total * 100:.1f}%)", flush=True)
     dataset = dataset.add_column(f"{key_field}_context", output_contexts)
     dataset = dataset.add_column(f"{key_field}_answer", output_answers)
     return dataset
@@ -330,6 +334,8 @@ if __name__ == "__main__":
                             help='The version of the dataset to be generated.')
     parser.add_argument('--classified_path', type=str, default=None,
                             help='the path to classified contexts. If it is not none, then we do not classify the context (into w/ and wo/ explanations) and will load from the given path. \n If "x" is passed, then it load the default classified contexts for each model (classified_context/model_name.jsonl).')
+    parser.add_argument('--sample_fraction', type=float, default=None,
+                            help='Fraction of the dataset to use (e.g., 0.1 for 10%%). Useful for quick test runs.')
     args = parser.parse_args()
 
     model_name = args.test_model_name
@@ -338,6 +344,11 @@ if __name__ == "__main__":
     # Load from derived model knowledge
     dataset = load_from_disk(os.path.join(os.environ["data_dir"], "model_knowledge", model_name))
     print("Length of raw dataset = ", len(dataset))
+
+    if args.sample_fraction is not None:
+        num_samples = int(len(dataset) * args.sample_fraction)
+        dataset = dataset.shuffle(seed=42).select(range(num_samples))
+        print(f"Sampled {num_samples} instances ({args.sample_fraction*100:.0f}% of dataset)")
 
     versionname = args.data_version
     pilot_run = True if "full" not in versionname else False
