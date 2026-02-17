@@ -68,7 +68,7 @@ def create_acc_row(test_model_name, task_type, data_version="", format="mult", t
     row["Overall"] = sum(overall_metrics) / len(overall_metrics) * 100
     return row
 
-def create_acc_table(test_model_name, format="mult", data_version=""):
+def create_acc_table(test_model_name, format="mult", data_version="", save_path=None):
     """
     Load the evaluation result of the given model from /output/metrics, and generate a table of
      Performance (acc): NC HPCE HPC LPC Overall
@@ -90,7 +90,9 @@ def create_acc_table(test_model_name, format="mult", data_version=""):
     df = pd.DataFrame(tab)
 
     # save to CSV
-    df.to_csv(os.path.join(os.environ['base_dir'], "results", f"{test_model_name}_{data_version}_{format}_perf.csv"), index=False)
+    if save_path is None:
+        save_path = os.path.join(os.environ['base_dir'], "results", f"{test_model_name}_{data_version}_{format}_perf.csv")
+    df.to_csv(save_path, index=False)
 
     # Step 4: Display with PrettyTable
     table = PrettyTable()
@@ -371,16 +373,17 @@ if __name__ == "__main__":
     parser.add_argument('--format', type=str, default="mult", help='multiple choice (mult) or free generation (free)')
     parser.add_argument('--len_ablation', action='store_true', help='Aggregate length ablation results')
     parser.add_argument('--prompt_ablation', action='store_true', help='Aggregate prompt ablation results')
+    parser.add_argument('--save_path', type=str, default=None, help='Custom path to save the final CSV file')
     args = parser.parse_args()
     data_version = args.data_version
-    
+
     # Check that len_ablation and prompt_ablation are not both true
     if args.len_ablation and args.prompt_ablation:
         parser.error("--len_ablation and --prompt_ablation cannot both be enabled")
-    
+
     if args.len_ablation:
         create_len_ablation_table(args.test_model_name, format=args.format, data_version=data_version)
     elif args.prompt_ablation:
         create_prompt_ablation_table(args.test_model_name, format=args.format, data_version=data_version)
     else:
-        create_acc_table(args.test_model_name, format=args.format, data_version=data_version)
+        create_acc_table(args.test_model_name, format=args.format, data_version=data_version, save_path=args.save_path)

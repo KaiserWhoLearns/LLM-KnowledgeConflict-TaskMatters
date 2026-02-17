@@ -6,7 +6,7 @@
 cd "$(dirname "$0")/.."
 
 # Parse command line arguments
-ABLATION_TYPE=""
+ABLATION_TYPE="len"
 
 usage() {
     echo "Usage: $0 [--len|--prompt]"

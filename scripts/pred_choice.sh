@@ -3,9 +3,9 @@ export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
 export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
 
 export model_name="gpt-5.2"
-export task_type="RAG" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
+export task_type="PK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
 export data_version="full_v2"
-export length_ablation=false # Set to true for length ablation experiments
+export length_ablation=true # Set to true for length ablation experiments
 export prompt_ablation=false # Set to true for prompt ablation experiments (runs all: weak, neutral, strong)
 
 declare -A TASK_TYPE_PRETTY
