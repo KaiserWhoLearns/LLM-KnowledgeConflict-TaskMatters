@@ -1,8 +1,14 @@
 import json
 import os
 from typing import Dict
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Match styling in analysis/make_plots.py so fonts agree across figures.
+font = {'family': 'serif', 'size': 19}
+mpl.rc('font', **font)
+plt.rcParams["font.family"] = "Nimbus Roman"
 
 
 def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output", include_len_ablation: bool = True, task: str = "RAG") -> Dict[str, int]:
@@ -341,10 +347,11 @@ def visualize_error_analysis(results: Dict[str, Dict[str, int]], output_dir: str
     # Map model names to pretty names (from plot_hpc_hpce_comparison.py)
     pretty_model_names = {
         'olmo2-7B': 'OLMo2-7B',
-        'mistral7B': 'Mistral7B', 
+        'mistral7B': 'Mistral7B',
         'qwen7B-instruct': 'Qwen-7B',
         'olmo2-13B': 'OLMo2-13B',
-        'qwen2.5-14B-instruct': 'Qwen-14B'
+        'qwen2.5-14B-instruct': 'Qwen-14B',
+        'gpt5.2': 'GPT-5.2'
     }
     
     # Get pretty names for display
@@ -623,23 +630,121 @@ def create_pie_charts(results: Dict[str, Dict[str, int]], output_dir: str = "res
     print(f"  Both Wrong: {hpce_totals['both_wrong']:.1f}%")
 
 
+def create_error_strip(results: Dict[str, Dict[str, int]], output_dir: str = "results/figures", task: str = "RAG"):
+    """
+    Create a horizontal stacked-bar (strip) figure averaging NC Only / PC Only / Both Wrong
+    percentages across models for HPC, HPCdub, and HPCE rows.
+
+    PCK variant shows a legend on top; RAG variant adds the "Percentage (%)" x-label
+    and no legend — matching doc/Paper-KnowledgeConflict/figure_files/*_error_strip.pdf.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    hpc_totals = {'nc_only': 0.0, 'pc_only': 0.0, 'both_wrong': 0.0}
+    hpcdub_totals = {'nc_only': 0.0, 'pc_only': 0.0, 'both_wrong': 0.0}
+    hpce_totals = {'nc_only': 0.0, 'pc_only': 0.0, 'both_wrong': 0.0}
+    n_models = len(results)
+
+    for _, stats in results.items():
+        if stats['total_hpc'] > 0:
+            nc_only = stats['hpc_nc_correct_hpc_wrong']
+            pc_only = stats['hpc_hpc_correct_nc_wrong']
+            both_wrong = stats['hpc_both_wrong']
+            tot = nc_only + pc_only + both_wrong
+            if tot > 0:
+                hpc_totals['nc_only'] += nc_only / tot
+                hpc_totals['pc_only'] += pc_only / tot
+                hpc_totals['both_wrong'] += both_wrong / tot
+        if stats.get('total_hpc_double', 0) > 0:
+            nc_only = stats['hpc_double_nc_correct_hpc_wrong']
+            pc_only = stats['hpc_double_hpc_correct_nc_wrong']
+            both_wrong = stats['hpc_double_both_wrong']
+            tot = nc_only + pc_only + both_wrong
+            if tot > 0:
+                hpcdub_totals['nc_only'] += nc_only / tot
+                hpcdub_totals['pc_only'] += pc_only / tot
+                hpcdub_totals['both_wrong'] += both_wrong / tot
+        if stats['total_hpce'] > 0:
+            nc_only = stats['hpce_nc_correct_hpce_wrong']
+            pc_only = stats['hpce_hpce_correct_nc_wrong']
+            both_wrong = stats['hpce_both_wrong']
+            tot = nc_only + pc_only + both_wrong
+            if tot > 0:
+                hpce_totals['nc_only'] += nc_only / tot
+                hpce_totals['pc_only'] += pc_only / tot
+                hpce_totals['both_wrong'] += both_wrong / tot
+
+    for totals in (hpc_totals, hpcdub_totals, hpce_totals):
+        for k in totals:
+            totals[k] = (totals[k] / n_models) * 100
+
+    rows = ['HPC', 'HPCdub', 'HPCE']
+    row_data = [hpc_totals, hpcdub_totals, hpce_totals]
+    nc = np.array([d['nc_only'] for d in row_data])
+    pc = np.array([d['pc_only'] for d in row_data])
+    bw = np.array([d['both_wrong'] for d in row_data])
+
+    color_nc = '#A6C8E0'
+    color_pc = '#F4A6A6'
+    color_bw = '#B5D99C'
+
+    fig, ax = plt.subplots(figsize=(12, 3.5))
+    y = np.arange(len(rows))
+    ax.barh(y, nc, color=color_nc, label='NC Only', edgecolor='none')
+    ax.barh(y, pc, left=nc, color=color_pc, label='PC Only', edgecolor='none')
+    ax.barh(y, bw, left=nc + pc, color=color_bw, label='Both Wrong', edgecolor='none')
+
+    for i in range(len(rows)):
+        if nc[i] > 3:
+            ax.text(nc[i] / 2, i, f'{nc[i]:.1f}', ha='center', va='center', fontsize=22, color='black')
+        if pc[i] > 3:
+            ax.text(nc[i] + pc[i] / 2, i, f'{pc[i]:.1f}', ha='center', va='center', fontsize=22, color='black')
+        if bw[i] > 3:
+            ax.text(nc[i] + pc[i] + bw[i] / 2, i, f'{bw[i]:.1f}', ha='center', va='center', fontsize=22, color='black')
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(rows, fontsize=22)
+    ax.set_xlim(0, 100)
+    ax.set_xticks([0, 20, 40, 60, 80, 100])
+    ax.tick_params(axis='x', labelsize=18)
+    ax.grid(axis='x', linestyle='--', alpha=0.5)
+    ax.set_axisbelow(True)
+    for spine in ('top', 'right'):
+        ax.spines[spine].set_visible(False)
+
+    if task.upper() == 'PCK':
+        ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02),
+                  ncol=3, frameon=False, fontsize=20, handlelength=1.5, handleheight=1.2)
+    else:
+        ax.set_xlabel('Percentage (%)', fontsize=22)
+
+    plt.tight_layout()
+    out_path = os.path.join(output_dir, f'{task.lower()}_error_strip.pdf')
+    plt.savefig(out_path, bbox_inches='tight')
+    print(f"Strip plot saved as PDF: {out_path}")
+    plt.close()
+
+
 if __name__ == "__main__":
     import sys
-    
+
     # Get task type from command line argument, default to RAG
     task = sys.argv[1] if len(sys.argv) > 1 else "RAG"
-    
+
     # Analyze all models
     results = analyze_all_models(task=task)
-    
+
     # Print results
     print_error_analysis(results, task=task)
-    
+
     # Print table
     print_error_table(results)
-    
+
     # Create visualization
     visualize_error_analysis(results, task=task)
-    
+
     # Create pie charts
     create_pie_charts(results, task=task)
+
+    # Create strip plot
+    create_error_strip(results, task=task)

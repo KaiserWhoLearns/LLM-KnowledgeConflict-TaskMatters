@@ -27,12 +27,13 @@ perf_mistral = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "mist
 perf_qwen = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "qwen7B-instruct_full_v2_mult_perf.csv"))
 perf_olmo13B = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "olmo2-13B_full_v2_mult_perf.csv"))
 perf_qwen14B = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "qwen2.5-14B-instruct_full_v2_mult_perf.csv"))
+perf_gpt52 = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "gpt5.2_full_v2_mult_perf.csv"))
 
 # ------------------------------------------------------------------
 # 1)  Combine the three model‑specific DataFrames
 # ------------------------------------------------------------------
 dfs = []
-for name, df in [('OLMo2-7B', perf_olmo), ('MistralMoE-7B', perf_mistral), ('Qwen2.5-7B', perf_qwen), ('OLMo2-13B', perf_olmo13B), ('Qwen2.5-14B', perf_qwen14B)]:
+for name, df in [('OLMo2-7B', perf_olmo), ('MistralMoE-7B', perf_mistral), ('GPT-5.2', perf_gpt52), ('Qwen2.5-7B', perf_qwen), ('OLMo2-13B', perf_olmo13B), ('Qwen2.5-14B', perf_qwen14B)]:
 # for name, df in  [('MistralMoE-7B', perf_mistral)]:
     tmp = df.copy()
     tmp['model'] = name                              # tag the model
@@ -44,17 +45,10 @@ data = pd.concat(dfs, ignore_index=True)
 # 3)  Draw one bar‑plot figure per task
 # ------------------------------------------------------------------
 sns.set_style('whitegrid')
-set2      = sns.color_palette('Set2', 3)            # take 3 nice Set2 colors
-PALETTE   = {'NC': set2[0], 'HPC': set2[1], 'LPC': set2[2]}  # consistent mapping
+PALETTE   = {'NC': '#fdb731', 'HPC': '#ff6363', 'LPC': '#6cd9f9'}  # consistent mapping
 
-for t in ['KFextract', 'CK', 'PK', 'PCK', 'RAG']:
-    # Select metric based on task
-    if t in ['CK', 'PK']:
-        metric_to_plot = "exact_match"
-        ylabel = "Accuracy"
-    else:  # KFextract, PCK, RAG
-        metric_to_plot = "f1"
-        ylabel = "F1"
+for t, metric_to_plot in [(task, m) for task in ['KFextract', 'CK', 'PK', 'PCK', 'RAG'] for m in ['exact_match', 'f1']]:
+    ylabel = "Accuracy" if metric_to_plot == "exact_match" else "F1"
 
     # Filter data for the current metric
     task_data = data[data['metric'] == metric_to_plot].copy()
@@ -118,7 +112,11 @@ for t in ['KFextract', 'CK', 'PK', 'PCK', 'RAG']:
         plt.ylim(20, None)  # Set lower limit to 20, upper limit auto
     plt.xlabel('')
     plt.ylabel(ylabel)
-    plt.legend(title='Context')
+    if t == 'KFextract' and metric_to_plot == 'f1':
+        plt.legend(title='Context', loc='lower center', bbox_to_anchor=(0.5, 1.02),
+                   ncol=3, frameon=True)
+    else:
+        ax.get_legend().remove()
     plt.tight_layout()
     plt.savefig(os.path.join(os.environ['base_dir'], "results", "figures", f"{t}_{metric_to_plot}.pdf"), bbox_inches='tight')
     plt.show()
@@ -157,9 +155,10 @@ for ax, t in zip(axes, tasks):
     # ------------------------------------------------------------------
     dfs = []
     for name, df in [('OLMo2-7B', perf_olmo),
-                     ('OLMo2-13B', perf_olmo13B),
                      ('Mistral7B', perf_mistral),
+                     ('GPT-5.2', perf_gpt52),
                      ('Qwen-7B', perf_qwen),
+                     ('OLMo2-13B', perf_olmo13B),
                      ('Qwen-14B', perf_qwen14B)]:
         d = df[df['metric'] == metric_to_plot].copy()
         d['model'] = name
@@ -192,8 +191,7 @@ for ax, t in zip(axes, tasks):
     # ------------------------------------------------------------------
     # 2)  Colour map that is *fixed* across tasks  ─────────────────────
     # ------------------------------------------------------------------
-    set2      = sns.color_palette('Set2', 4)            # take 4 nice Set2 colors
-    PALETTE   = {'HPC': set2[1], 'HPCE': set2[3]}  # consistent mapping
+    PALETTE   = {'HPC': '#ff6363', 'HPCE': '#00c9a7'}  # consistent mapping
     HUE_ORDER    = evidence_cols                    # keep legend order stable
 
     # choose evidence types for this task
@@ -280,9 +278,10 @@ for ax, t in zip(axes, tasks):
     # ------------------------------------------------------------------
     dfs = []
     for name, df in [('OLMo2-7B', perf_olmo),
-                     ('OLMo2-13B', perf_olmo13B),
                      ('Mistral7B', perf_mistral),
+                     ('GPT-5.2', perf_gpt52),
                      ('Qwen-7B', perf_qwen),
+                     ('OLMo2-13B', perf_olmo13B),
                      ('Qwen-14B', perf_qwen14B)]:
         d = df[df['metric'] == metric_to_plot].copy()
         d['model'] = name
@@ -315,8 +314,7 @@ for ax, t in zip(axes, tasks):
     # ------------------------------------------------------------------
     # 2)  Colour map that is *fixed* across tasks  ─────────────────────
     # ------------------------------------------------------------------
-    set2      = sns.color_palette('Set2', 4)            # take 4 nice Set2 colors
-    PALETTE   = {'HPC': set2[1], 'HPCE': set2[3]}  # consistent mapping
+    PALETTE   = {'HPC': '#ff6363', 'HPCE': '#00c9a7'}  # consistent mapping
     HUE_ORDER    = evidence_cols                    # keep legend order stable
 
     # choose evidence types for this task

@@ -25,13 +25,15 @@ perf_mistral = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "mist
 perf_qwen = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "qwen7B-instruct_full_v2_mult_perf_len_ablation.csv"))
 perf_olmo13B = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "olmo2-13B_full_v2_mult_perf_len_ablation.csv"))
 perf_qwen14B = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "qwen2.5-14B-instruct_full_v2_mult_perf_len_ablation.csv"))
+perf_gpt52 = pd.read_csv(os.path.join(os.environ["base_dir"], "results", "gpt5.2_full_v2_mult_perf_len_ablation.csv"))
 
 # Combine the model DataFrames using different metrics per task
 dfs = []
-for name, df in [('OLMo2-7B', perf_olmo), 
-                 ('Mistral7B', perf_mistral), 
-                 ('Qwen-7B', perf_qwen), 
-                 ('OLMo2-13B', perf_olmo13B), 
+for name, df in [('OLMo2-7B', perf_olmo),
+                 ('Mistral7B', perf_mistral),
+                 ('GPT-5.2', perf_gpt52),
+                 ('Qwen-7B', perf_qwen),
+                 ('OLMo2-13B', perf_olmo13B),
                  ('Qwen-14B', perf_qwen14B)]:
     # Use F1 for PCK and RAG tasks, exact_match for others
     tmp_pck = df[(df['metric'] == 'f1') & (df['task'] == 'PCK')].copy()
