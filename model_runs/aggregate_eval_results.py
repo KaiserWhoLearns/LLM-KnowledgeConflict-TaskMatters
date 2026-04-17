@@ -2,7 +2,6 @@ import re
 import os
 import sys
 import math
-import pdb
 from prettytable import PrettyTable
 import pandas as pd
 sys.path.append(os.getcwd())

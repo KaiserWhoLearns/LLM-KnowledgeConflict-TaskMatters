@@ -1,7 +1,9 @@
 data/*
+!data/conflictqa.pkl
 logs/*
 output/
 doc/*
+hf_cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

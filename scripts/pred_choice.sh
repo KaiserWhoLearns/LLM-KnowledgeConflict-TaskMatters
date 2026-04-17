@@ -1,12 +1,22 @@
 #!/bin/bash
-export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
-export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
+# Run prediction + evaluation for a multiple-choice task.
+#
+# Configure via env vars or edit the defaults below:
+#   MODEL_NAME       HuggingFace repo id or API model id (e.g. "gpt-5.2")
+#   TASK_TYPE        One of: KFsummary, KFextract, PCK, CK, PK, RAG
+#   DATA_VERSION     Dataset version suffix (default full_v2)
+#   LENGTH_ABLATION  "true" for length ablation experiments
+#   PROMPT_ABLATION  "true" for prompt ablation (runs weak/neutral/strong)
+set -e
 
-export model_name="gpt-5.2"
-export task_type="PK" # Choose from: KFsummary, KFextract, PCK, CK, PK, RAG
-export data_version="full_v2"
-export length_ablation=true # Set to true for length ablation experiments
-export prompt_ablation=false # Set to true for prompt ablation experiments (runs all: weak, neutral, strong)
+export base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export data_dir="${base_dir}/data"
+
+export model_name="${MODEL_NAME:-gpt-5.2}"
+export task_type="${TASK_TYPE:-PK}"
+export data_version="${DATA_VERSION:-full_v2}"
+export length_ablation="${LENGTH_ABLATION:-false}"
+export prompt_ablation="${PROMPT_ABLATION:-false}"
 
 declare -A TASK_TYPE_PRETTY
 TASK_TYPE_PRETTY["KFsummary"]="knowledge_free_summary"
@@ -15,6 +25,7 @@ TASK_TYPE_PRETTY["PCK"]="parametriccontextual_knowledge"
 TASK_TYPE_PRETTY["CK"]="contextual_knowledge"
 TASK_TYPE_PRETTY["PK"]="parametric_knowledge"
 TASK_TYPE_PRETTY["RAG"]="rag"
+
 declare -A MODEL_NAME_TO_PRETTY
 MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-7B-Instruct"]="olmo2-7B"
 MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-13B-Instruct"]="olmo2-13B"
@@ -27,206 +38,72 @@ MODEL_NAME_TO_PRETTY["Qwen/Qwen2.5-14B-Instruct"]="qwen2.5-14B-instruct"
 MODEL_NAME_TO_PRETTY["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]="deepseek-llama8b"
 MODEL_NAME_TO_PRETTY["gpt-5.2"]="gpt5.2"
 
-# Determine if this is an API model (no GPU needed)
-is_api_model=false
-if [[ "$model_name" == gpt-* ]]; then
-    is_api_model=true
-fi
-
-# Check mutual exclusion
 if [ "$length_ablation" = true ] && [ "$prompt_ablation" = true ]; then
     echo "Error: length_ablation and prompt_ablation cannot both be true"
     exit 1
 fi
 
+pretty_name="${MODEL_NAME_TO_PRETTY[$model_name]}"
+
 # Determine data path and save path based on ablation flags
 if [ "$length_ablation" = true ]; then
-    export data_path="${data_dir}/length_ablation_task/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl"
-    export save_path="${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}_choice_len_ablation.jsonl"
+    export data_path="${data_dir}/length_ablation_task/${pretty_name}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}.jsonl"
+    export save_path="${base_dir}/output/${pretty_name}_${task_type}_${data_version}_choice_len_ablation.jsonl"
 elif [ "$prompt_ablation" = true ]; then
-    # For prompt ablation, we'll handle multiple paths in the script below
-    export data_path_base="${data_dir}/prompt_ablation_task/${MODEL_NAME_TO_PRETTY[$model_name]}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}"
-    export save_path_base="${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}_choice_prompt_ablation"
+    export data_path_base="${data_dir}/prompt_ablation_task/${pretty_name}_${TASK_TYPE_PRETTY[$task_type]}_${data_version}"
+    export save_path_base="${base_dir}/output/${pretty_name}_${task_type}_${data_version}_choice_prompt_ablation"
 else
-    export data_path=""  # Use default path in predict.py
-    export save_path="${base_dir}/output/${MODEL_NAME_TO_PRETTY[$model_name]}_${task_type}_${data_version}_choice.jsonl"
+    export data_path=""
+    export save_path="${base_dir}/output/${pretty_name}_${task_type}_${data_version}_choice.jsonl"
 fi
 
-export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-pred-${task_type}"
-echo "Running $exp_name"
+echo "Running ${pretty_name}-pred-${task_type}"
+mkdir -p "${base_dir}/logs" "${base_dir}/output"
+cd "$base_dir"
 
-export BNB_CUDA_VERSION=118
-
-mkdir -p ${base_dir}/logs
-
-cd $base_dir
-
-if [ "$is_api_model" = true ]; then
-sbatch <<EOT
-#!/bin/bash
-
-#SBATCH --job-name=$exp_name
-#SBATCH --mail-user=hsun74@jhu.edu
-#SBATCH --mail-type=FAIL,END
-#SBATCH --partition=parallel
-#SBATCH -A mdredze1
-#SBATCH --gpus=0
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=8G
-#SBATCH --time=2-15:00:00 # Max runtime in DD-HH:MM:SS format.
-#SBATCH --chdir=${BASE_DIR}
-#SBATCH --export=all
-#SBATCH --output=${base_dir}/logs/output_${exp_name}.log
-#SBATCH --error=${base_dir}/logs/error_${exp_name}.log
-
-module load anaconda3
-conda activate /scratch4/mdredze1/hsun74/conda_env/kc
-cd $base_dir
-
-# Run prediction based on ablation settings
 if [ "$length_ablation" = true ]; then
-    echo "Running predictions for length ablation"
     python model_runs/predict.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        --data_version $data_version \
-        --task_type $task_type \
+        --test_model_name "$pretty_name" \
+        --data_version "$data_version" \
+        --task_type "$task_type" \
         --mult_choice \
         --data_path "$data_path" \
         --save_dir "$save_path"
 
     python model_runs/evaluate_choice.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+        --test_model_name "$pretty_name" \
         --pred_path "$save_path" \
-        --task_type $task_type
+        --task_type "$task_type"
 
 elif [ "$prompt_ablation" = true ]; then
-    echo "Running predictions for prompt ablation (all strength levels)"
-
-    # Run predictions for each prompt strength
     for prompt_strength in weak neutral strong; do
-        echo "Running prediction for \$prompt_strength prompts"
+        echo "Prompt strength: $prompt_strength"
+        data_path="${data_path_base}_${task_type}_${prompt_strength}.jsonl"
+        save_path="${save_path_base}_${prompt_strength}.jsonl"
 
-        # Set paths for this prompt strength
-        export data_path="\${data_path_base}_\${task_type}_\${prompt_strength}.jsonl"
-        export save_path="\${save_path_base}_\${prompt_strength}.jsonl"
+        python model_runs/predict.py \
+            --test_model_name "$pretty_name" \
+            --data_version "$data_version" \
+            --task_type "$task_type" \
+            --mult_choice \
+            --data_path "$data_path" \
+            --save_dir "$save_path"
 
-        # python model_runs/predict.py \
-        #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        #     --data_version $data_version \
-        #     --task_type $task_type \
-        #     --mult_choice \
-        #     --data_path "\$data_path" \
-        #     --save_dir "\$save_path"
-
-        echo "Evaluating \$prompt_strength predictions"
         python model_runs/evaluate_choice.py \
-            --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-            --pred_path "\$save_path" \
-            --task_type $task_type
+            --test_model_name "$pretty_name" \
+            --pred_path "$save_path" \
+            --task_type "$task_type"
     done
 
 else
-    echo "Running standard predictions"
     python model_runs/predict.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        --data_version $data_version \
-        --task_type $task_type \
+        --test_model_name "$pretty_name" \
+        --data_version "$data_version" \
+        --task_type "$task_type" \
         --mult_choice
 
     python model_runs/evaluate_choice.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
+        --test_model_name "$pretty_name" \
         --pred_path "$save_path" \
-        --task_type $task_type
-fi
-
-# python model_runs/aggregate_eval_results.py
-#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]}
-
-EOT
-else
-sbatch <<EOT
-#!/bin/bash
-
-#SBATCH --job-name=$exp_name
-#SBATCH --mail-user=hsun74@jhu.edu
-#SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=50G
-#SBATCH --gpus=1
-#SBATCH --time=2-15:00:00 # Max runtime in DD-HH:MM:SS format.
-#SBATCH --chdir=${BASE_DIR}
-#SBATCH --export=all
-#SBATCH --output=${base_dir}/logs/output_${exp_name}.log
-#SBATCH --error=${base_dir}/logs/error_${exp_name}.log
-
-module load anaconda3
-module load cuda/11.8.0
-conda activate /scratch4/mdredze1/hsun74/conda_env/kc
-# source "/home/hsun74/.bashrc"
-cd $base_dir
-
-# Run prediction based on ablation settings
-if [ "$length_ablation" = true ]; then
-    echo "Running predictions for length ablation"
-    python model_runs/predict.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        --data_version $data_version \
-        --task_type $task_type \
-        --mult_choice \
-        --data_path "$data_path" \
-        --save_dir "$save_path"
-
-    python model_runs/evaluate_choice.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        --pred_path "$save_path" \
-        --task_type $task_type
-
-elif [ "$prompt_ablation" = true ]; then
-    echo "Running predictions for prompt ablation (all strength levels)"
-
-    # Run predictions for each prompt strength
-    for prompt_strength in weak neutral strong; do
-        echo "Running prediction for \$prompt_strength prompts"
-
-        # Set paths for this prompt strength
-        export data_path="\${data_path_base}_\${task_type}_\${prompt_strength}.jsonl"
-        export save_path="\${save_path_base}_\${prompt_strength}.jsonl"
-
-        # python model_runs/predict.py \
-        #     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        #     --data_version $data_version \
-        #     --task_type $task_type \
-        #     --mult_choice \
-        #     --data_path "\$data_path" \
-        #     --save_dir "\$save_path"
-
-        echo "Evaluating \$prompt_strength predictions"
-        python model_runs/evaluate_choice.py \
-            --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-            --pred_path "\$save_path" \
-            --task_type $task_type
-    done
-
-else
-    echo "Running standard predictions"
-    python model_runs/predict.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        --data_version $data_version \
-        --task_type $task_type \
-        --mult_choice
-
-    python model_runs/evaluate_choice.py \
-        --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-        --pred_path "$save_path" \
-        --task_type $task_type
-fi
-
-# python model_runs/aggregate_eval_results.py
-#     --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]}
-
-EOT
+        --task_type "$task_type"
 fi

@@ -1,4 +1,4 @@
-name: /scratch4/mdredze1/hsun74/conda_env/kc
+name: kc
 channels:
   - defaults
 dependencies:

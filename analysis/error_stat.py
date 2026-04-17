@@ -5,13 +5,16 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+DEFAULT_OUTPUT_DIR = os.path.join(REPO_ROOT, "output")
+
 # Match styling in analysis/make_plots.py so fonts agree across figures.
 font = {'family': 'serif', 'size': 19}
 mpl.rc('font', **font)
 plt.rcParams["font.family"] = "Nimbus Roman"
 
 
-def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output", include_len_ablation: bool = True, task: str = "RAG") -> Dict[str, int]:
+def count_error_types(model_name: str, base_dir: str = DEFAULT_OUTPUT_DIR, include_len_ablation: bool = True, task: str = "RAG") -> Dict[str, int]:
     """
     Count error types for RAG/PCK tasks by comparing predictions with correct answers.
     
@@ -195,7 +198,7 @@ def count_error_types(model_name: str, base_dir: str = "/scratch4/mdredze1/hsun7
     return stats
 
 
-def analyze_all_models(base_dir: str = "/scratch4/mdredze1/hsun74/KnowledgeInstruct/output", task: str = "RAG") -> Dict[str, Dict[str, int]]:
+def analyze_all_models(base_dir: str = DEFAULT_OUTPUT_DIR, task: str = "RAG") -> Dict[str, Dict[str, int]]:
     """
     Analyze error types for all models with RAG/PCK results.
     

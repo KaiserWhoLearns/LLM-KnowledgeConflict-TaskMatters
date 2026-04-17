@@ -1,4 +1,3 @@
-import pdb
 import os
 import sys
 import argparse
@@ -144,8 +143,6 @@ def query_reasoning_model(model_name):
         # Decode the generated output
         pred1 = tokenizer.decode(output1[0][0], skip_special_tokens=True)
         pred2 = tokenizer.decode(output2[0][0], skip_special_tokens=True)
-        pdb.set_trace()
-        # TODO: Check whether my implementation is correct
 
         # Parse for the answer
         stance1 = 1 if "yes" in pred1.split("</think>")[-1].lower() else 2

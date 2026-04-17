@@ -1,7 +1,6 @@
 
 import os
 import sys
-import pdb
 sys.path.append(os.getcwd())
 import argparse
 from datasets import load_dataset, Dataset
@@ -10,7 +9,10 @@ from openai import OpenAI
 from tqdm import tqdm
 from dotenv import load_dotenv
 
+from utils.constant import get_constant
+
 load_dotenv()
+get_constant()
 
 PRETTY_TO_MODEL_NAME = {
     "llama3.2-3B-Instruct": "meta-llama/Llama-3.2-3B-Instruct",

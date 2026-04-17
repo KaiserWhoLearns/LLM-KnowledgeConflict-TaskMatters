@@ -1,16 +1,22 @@
 #!/bin/bash
-export base_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct
-export data_dir=/scratch4/mdredze1/hsun74/KnowledgeInstruct/data
+# Run the context-editing pipeline: classify+edit contexts, filter invalid
+# instances, then generate task variants (free-form and multiple-choice).
+#
+# Configure via env vars or edit the defaults below:
+#   MODEL_NAME       HuggingFace repo id or API model id
+#   DATA_VERSION     Dataset version suffix (default full_v2)
+#   SAMPLE_FRACTION  Fraction of data to process in clas_edit_context.py
+set -e
 
-export model_name="gpt-5.2"
-# export model_name="Qwen/Qwen2.5-14B-Instruct"
-data_version="full_v2"
-sample_fraction="0.1"
+export base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export data_dir="${base_dir}/data"
+
+export model_name="${MODEL_NAME:-gpt-5.2}"
+data_version="${DATA_VERSION:-full_v2}"
+sample_fraction="${SAMPLE_FRACTION:-0.1}"
 
 declare -A MODEL_NAME_TO_PRETTY
-# No examples captured for Gemma3-4b
 MODEL_NAME_TO_PRETTY["google/gemma-3-4b-it"]="gemma3-4b"
-
 MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-7B-Instruct"]="olmo2-7B"
 MODEL_NAME_TO_PRETTY["allenai/OLMo-2-1124-13B-Instruct"]="olmo2-13B"
 MODEL_NAME_TO_PRETTY["meta-llama/Llama-3.1-8B-Instruct"]="llama-3.1-8B-Instruct"
@@ -22,112 +28,29 @@ MODEL_NAME_TO_PRETTY["Qwen/Qwen2.5-7B-Instruct-1M"]="qwen7B-instruct"
 MODEL_NAME_TO_PRETTY["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]="deepseek-llama8b"
 MODEL_NAME_TO_PRETTY["gpt-5.2"]="gpt5.2"
 
-# Determine if this is an API model (no GPU needed)
-is_api_model=false
-if [[ "$model_name" == gpt-* ]]; then
-    is_api_model=true
-fi
+pretty_name="${MODEL_NAME_TO_PRETTY[$model_name]}"
 
-export exp_name="${MODEL_NAME_TO_PRETTY[$model_name]}-context_edit"
-echo "Running $exp_name"
-
-export BNB_CUDA_VERSION=118
-
-mkdir -p ${base_dir}/logs
-
-cd $base_dir
-
-if [ "$is_api_model" = true ]; then
-sbatch <<EOT
-#!/bin/bash
-
-#SBATCH --job-name=$exp_name
-#SBATCH --mail-user=hsun74@jhu.edu
-#SBATCH --mail-type=FAIL,END
-#SBATCH --partition=parallel
-#SBATCH -A mdredze1
-#SBATCH --gpus=0
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=8G
-#SBATCH --time=2-24:00:00 # Max runtime in DD-HH:MM:SS format.
-#SBATCH --chdir=${BASE_DIR}
-#SBATCH --export=all
-#SBATCH --output=${base_dir}/logs/output_${exp_name}.log
-#SBATCH --error=${base_dir}/logs/error_${exp_name}.log
-
-module load anaconda3
-conda activate /scratch4/mdredze1/hsun74/conda_env/kc
-cd $base_dir
+echo "Running ${pretty_name}-context_edit"
+mkdir -p "${base_dir}/logs"
+cd "$base_dir"
 
 # Saves to: data/final_data/{model_name}_{data_version}.jsonl
 python data_creation/clas_edit_context.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version \
-    --sample_fraction $sample_fraction
+    --test_model_name "$pretty_name" \
+    --data_version "$data_version" \
+    --sample_fraction "$sample_fraction"
 
 # Saves to: data/final_data_filtered/{model_name}_{data_version}.jsonl
 python data_creation/remove_invalid_instances.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
+    --test_model_name "$pretty_name" \
+    --data_version "$data_version"
 
 # Saves to: data/task_data/{model_name}_knowledge_free_extract_{data_version}.jsonl (and other task variants)
 python data_creation/add_instruction.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
+    --test_model_name "$pretty_name" \
+    --data_version "$data_version"
 
 # Saves to: data/choice_task/{model_name}_{task_type}_{data_version}.jsonl
 python data_creation/add_instruction_choice.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
-
-EOT
-else
-sbatch <<EOT
-#!/bin/bash
-
-#SBATCH --job-name=$exp_name
-#SBATCH --mail-user=hsun74@jhu.edu
-#SBATCH --mail-type=FAIL,END
-#SBATCH -A mdredze80_gpu
-#SBATCH --partition=ica100
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=50G
-#SBATCH --gpus=1
-#SBATCH --time=2-24:00:00 # Max runtime in DD-HH:MM:SS format.
-#SBATCH --chdir=${BASE_DIR}
-#SBATCH --export=all
-#SBATCH --output=${base_dir}/logs/output_${exp_name}.log
-#SBATCH --error=${base_dir}/logs/error_${exp_name}.log
-
-module load anaconda3
-module load cuda/11.8.0
-module load git-lfs
-conda activate /scratch4/mdredze1/hsun74/conda_env/kc
-# source "/home/hsun74/.bashrc"
-cd $base_dir
-
-# Saves to: data/final_data/{model_name}_{data_version}.jsonl
-python data_creation/clas_edit_context.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version \
-    $sample_flag
-
-# Saves to: data/final_data_filtered/{model_name}_{data_version}.jsonl
-python data_creation/remove_invalid_instances.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
-
-# Saves to: data/task_data/{model_name}_knowledge_free_extract_{data_version}.jsonl (and other task variants)
-python data_creation/add_instruction.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
-
-# Saves to: data/choice_task/{model_name}_{task_type}_{data_version}.jsonl
-python data_creation/add_instruction_choice.py \
-    --test_model_name ${MODEL_NAME_TO_PRETTY[$model_name]} \
-    --data_version $data_version
-
-EOT
-fi
+    --test_model_name "$pretty_name" \
+    --data_version "$data_version"

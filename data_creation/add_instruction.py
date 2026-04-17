@@ -2,7 +2,6 @@
 import re
 import os
 import sys
-import pdb
 from openai import OpenAI
 sys.path.append(os.getcwd())
 import argparse

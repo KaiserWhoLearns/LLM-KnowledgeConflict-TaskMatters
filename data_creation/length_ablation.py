@@ -2,7 +2,6 @@
 import re
 import os
 import sys
-import pdb
 import random
 from openai import OpenAI
 sys.path.append(os.getcwd())
