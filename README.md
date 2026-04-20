@@ -1,5 +1,7 @@
 # Knowledge Conflict: Task Matters
 
+This repository include the code for the paper [Task Matters: Knowledge Requirements Shape LLM Responses to Context-Memory Conflict](https://arxiv.org/abs/2506.06485)
+
 Code and data pipeline for evaluating how large language models handle conflicts
 between parametric and contextual knowledge across different task formulations
 (knowledge-free, parametric-only, contextual-only, parametric+contextual, and RAG).
@@ -18,10 +20,10 @@ cp .env.example .env   # or create .env manually
 #   TOGETHER_API_KEY=...     # optional, only if using Together models
 ```
 
-For gated HuggingFace checkpoints (e.g. Llama), log in once with
+For gated HuggingFace checkpoints (e.g., Llama), log in once with
 `huggingface-cli login`.
 
-All paths default to the repository root. Override them via environment
+All paths default to the repository root. Override them via the environment
 variables if you need a different data or cache location:
 
 ```bash
@@ -120,3 +122,14 @@ Pretty names ↔ HuggingFace IDs are defined in `model_runs/predict.py` and the
 shell scripts. Out of the box: OLMo-2 (7B/13B), Llama-3.1/3.2, Mistral-7B,
 Qwen2.5 (7B/14B), DeepSeek-R1-Distill-Llama-8B, Gemma-3-4B, and OpenAI
 `gpt-5.2`.
+
+## Citation
+
+```
+@article{sun2025task,
+  title={Task Matters: Knowledge Requirements Shape LLM Responses to Context-Memory Conflict},
+  author={Sun, Kaiser and Bai, Fan and Dredze, Mark},
+  journal={arXiv preprint arXiv:2506.06485},
+  year={2025}
+}
+```
